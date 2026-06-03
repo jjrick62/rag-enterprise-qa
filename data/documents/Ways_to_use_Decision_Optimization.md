@@ -1,0 +1,6 @@
+﻿ Ways to use  Decision Optimization 
+
+To build  Decision Optimization models, you can create Python  notebooks with  DOcplex, a native Python API for Decision Optimization, or use the  Decision Optimization experiment UI that has more benefits and features.
+
+
+
