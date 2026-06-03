@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# 模块级单例变量——frozen dataclass 上不能设类属性
+_config_instance: "Config | None" = None
+
 
 @dataclass(frozen=True)
 class Config:
@@ -14,18 +17,16 @@ class Config:
     chroma_path: str
     model_cache_path: str
 
-    _instance: "Config | None" = None  # type: ignore
-
     @classmethod
     def load(cls) -> "Config":
-        if cls._instance is not None:
-            return cls._instance
-        # 绕过 frozen 限制，构造时一次性写入
-        object.__setattr__(cls, "_instance", Config(
+        global _config_instance
+        if _config_instance is not None:
+            return _config_instance
+        _config_instance = Config(
             deepseek_api_key=os.getenv("DEEPSEEK_API_KEY", ""),
             deepseek_base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
             embedding_model=os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5"),
             chroma_path=os.getenv("CHROMA_PATH", "../data/chroma_db"),
             model_cache_path=os.getenv("MODEL_CACHE_PATH", "./models"),
-        ))
-        return cls._instance
+        )
+        return _config_instance
