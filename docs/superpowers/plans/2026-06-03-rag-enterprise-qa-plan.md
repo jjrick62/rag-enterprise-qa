@@ -1529,3 +1529,834 @@ Expected: 无 TypeScript 错误
 git add frontend/
 git commit -m "Task 9: 前端项目搭建 — Vite + React + TS + 类型定义"
 ```
+
+---
+
+### Task 10: EventEmitter 基类 + ChatClient（SSE 客户端）
+
+**Files:**
+- Create: `frontend/src/core/EventEmitter.ts`
+- Create: `frontend/src/core/ChatClient.ts`
+
+- [ ] **Step 1: 写 EventEmitter 基类**
+
+`frontend/src/core/EventEmitter.ts`:
+```typescript
+type Listener = (...args: any[]) => void;
+
+export class EventEmitter {
+  private _listeners: Map<string, Listener[]> = new Map();
+
+  /** 注册事件监听 */
+  on(event: string, listener: Listener): this {
+    const list = this._listeners.get(event);
+    if (list) {
+      list.push(listener);
+    } else {
+      this._listeners.set(event, [listener]);
+    }
+    return this;
+  }
+
+  /** 移除事件监听 */
+  off(event: string, listener: Listener): this {
+    const list = this._listeners.get(event);
+    if (list) {
+      const idx = list.indexOf(listener);
+      if (idx !== -1) list.splice(idx, 1);
+    }
+    return this;
+  }
+
+  /** 触发事件 */
+  protected emit(event: string, ...args: any[]): void {
+    const list = this._listeners.get(event);
+    if (list) {
+      for (const fn of list) {
+        fn(...args);
+      }
+    }
+  }
+
+  /** 移除所有监听 */
+  removeAllListeners(): void {
+    this._listeners.clear();
+  }
+}
+```
+
+- [ ] **Step 2: 写 ChatClient 类（继承 EventEmitter）**
+
+`frontend/src/core/ChatClient.ts`:
+```typescript
+import { EventEmitter } from './EventEmitter';
+import type { SSEMessage, Source } from '../types';
+
+/** ChatClient 状态 */
+type ClientState = 'IDLE' | 'CONNECTING' | 'STREAMING' | 'ERROR';
+
+export class ChatClient extends EventEmitter {
+  private _state: ClientState = 'IDLE';
+  private _abortController: AbortController | null = null;
+
+  get state(): ClientState {
+    return this._state;
+  }
+
+  /** 发送问题，发起 SSE 连接 */
+  async send(question: string, category?: string): Promise<void> {
+    if (this._state === 'STREAMING' || this._state === 'CONNECTING') {
+      console.warn('ChatClient: 已有请求进行中');
+      return;
+    }
+
+    this._state = 'CONNECTING';
+    this._abortController = new AbortController();
+
+    try {
+      const response = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+        },
+        body: JSON.stringify({ question, category: category ?? null }),
+        signal: this._abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      this._state = 'STREAMING';
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // 按双换行分割 SSE 事件
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || ''; // 最后一个可能不完整，留到下次
+
+        for (const part of parts) {
+          if (!part.trim()) continue;
+          const parsed = this._parseSSE(part);
+          if (parsed) {
+            this.emit('message', parsed);
+          }
+        }
+      }
+
+      // 流结束，处理残留 buffer
+      if (buffer.trim()) {
+        const parsed = this._parseSSE(buffer);
+        if (parsed) this.emit('message', parsed);
+      }
+
+      this.emit('done');
+      this._state = 'IDLE';
+
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        // 用户主动取消，不算错误
+        this._state = 'IDLE';
+        return;
+      }
+      this._state = 'ERROR';
+      this.emit('error', err instanceof Error ? err : new Error(String(err)));
+      this._state = 'IDLE';
+    }
+  }
+
+  /** 取消当前请求 */
+  abort(): void {
+    if (this._abortController) {
+      this._abortController.abort();
+      this._abortController = null;
+    }
+  }
+
+  /** 解析单条 SSE 事件文本 */
+  private _parseSSE(raw: string): SSEMessage | null {
+    const lines = raw.split('\n');
+    let eventType = '';
+    let data = '';
+
+    for (const line of lines) {
+      if (line.startsWith('event: ')) {
+        eventType = line.slice(7).trim();
+      } else if (line.startsWith('data: ')) {
+        data = line.slice(6);
+      }
+    }
+
+    if (!eventType) return null;
+
+    switch (eventType) {
+      case 'token':
+        return { type: 'token', content: data };
+      case 'sources':
+        try {
+          const sources: Source[] = JSON.parse(data);
+          return { type: 'sources', sources };
+        } catch {
+          return null;
+        }
+      case 'done':
+        return { type: 'done' };
+      case 'error':
+        return { type: 'error', error: data };
+      default:
+        return null;
+    }
+  }
+}
+```
+
+- [ ] **Step 3: 写 EventEmitter 单元测试**
+
+`frontend/src/core/__tests__/EventEmitter.test.ts`:
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { EventEmitter } from '../EventEmitter';
+
+// 创建一个测试子类来暴露 protected emit
+class TestEmitter extends EventEmitter {
+  public emitPublic(event: string, ...args: any[]) {
+    this.emit(event, ...args);
+  }
+}
+
+describe('EventEmitter', () => {
+  it('应触发已注册的监听器', () => {
+    const emitter = new TestEmitter();
+    const fn = vi.fn();
+    emitter.on('test', fn);
+    emitter.emitPublic('test', 'hello', 42);
+    expect(fn).toHaveBeenCalledWith('hello', 42);
+  });
+
+  it('off 后不再触发', () => {
+    const emitter = new TestEmitter();
+    const fn = vi.fn();
+    emitter.on('test', fn);
+    emitter.off('test', fn);
+    emitter.emitPublic('test');
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('重复 on 会注册多次', () => {
+    const emitter = new TestEmitter();
+    const fn = vi.fn();
+    emitter.on('x', fn).on('x', fn);
+    emitter.emitPublic('x');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('removeAllListeners 清空所有', () => {
+    const emitter = new TestEmitter();
+    const fn = vi.fn();
+    emitter.on('a', fn).on('b', fn);
+    emitter.removeAllListeners();
+    emitter.emitPublic('a');
+    emitter.emitPublic('b');
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('未注册事件 emit 不报错', () => {
+    const emitter = new TestEmitter();
+    expect(() => emitter.emitPublic('nonexistent')).not.toThrow();
+  });
+});
+```
+
+- [ ] **Step 4: 安装 vitest 并运行测试**
+
+```bash
+cd frontend
+npm install -D vitest
+npx vitest run
+```
+Expected: 5 passed
+
+- [ ] **Step 5: 验证 TypeScript 编译无错**
+
+```bash
+npx tsc --noEmit
+```
+Expected: 无输出（无错误）
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/
+git commit -m "Task 10: EventEmitter 基类 + ChatClient SSE 客户端 + 5 单测"
+```
+
+---
+
+### Task 11: ChatPanel + SourcePopover 组件
+
+**Files:**
+- Create: `frontend/src/components/ChatPanel.tsx`
+- Create: `frontend/src/components/SourcePopover.tsx`
+
+- [ ] **Step 1: 写 SourcePopover 组件**
+
+`frontend/src/components/SourcePopover.tsx`:
+```tsx
+import { useState, useRef, useEffect } from 'react';
+import type { Source } from '../types';
+
+interface Props {
+  sources: Source[];
+}
+
+export function SourcePopover({ sources }: Props) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }
+  }, [open]);
+
+  if (!sources.length) return null;
+
+  return (
+    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          background: '#f0f4ff',
+          border: '1px solid #c3d0ff',
+          borderRadius: 6,
+          padding: '4px 10px',
+          cursor: 'pointer',
+          fontSize: 13,
+          color: '#3355cc',
+        }}
+      >
+        📎 引用来源 ({sources.length})
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute',
+          bottom: '100%',
+          left: 0,
+          marginBottom: 8,
+          background: '#fff',
+          border: '1px solid #e0e0e0',
+          borderRadius: 8,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+          padding: 12,
+          width: 380,
+          maxHeight: 300,
+          overflowY: 'auto',
+          zIndex: 100,
+        }}>
+          {sources.map((s, i) => (
+            <div key={i} style={{
+              marginBottom: i < sources.length - 1 ? 12 : 0,
+              paddingBottom: i < sources.length - 1 ? 12 : 0,
+              borderBottom: i < sources.length - 1 ? '1px solid #eee' : 'none',
+            }}>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+                📄 {s.documentName} · {s.heading || '（无标题）'}
+                <span style={{ marginLeft: 8, color: '#999' }}>
+                  相关度: {(s.score * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
+                {s.excerpt}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: 写 ChatPanel 组件**
+
+`frontend/src/components/ChatPanel.tsx`:
+```tsx
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ChatClient } from '../core/ChatClient';
+import { SourcePopover } from './SourcePopover';
+import type { Message, Source } from '../types';
+
+let idCounter = 0;
+function nextId(): string {
+  return `msg_${++idCounter}_${Date.now()}`;
+}
+
+export function ChatPanel() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [streaming, setStreaming] = useState(false);
+  const clientRef = useRef<ChatClient | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // 初始化 ChatClient，绑定事件
+  useEffect(() => {
+    const client = new ChatClient();
+    clientRef.current = client;
+
+    client.on('message', (msg) => {
+      if (msg.type === 'token') {
+        // 增量追加到当前 assistant 消息
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last && last.role === 'assistant' && last.isStreaming) {
+            updated[updated.length - 1] = {
+              ...last,
+              content: last.content + (msg.content || ''),
+            };
+          }
+          return updated;
+        });
+      } else if (msg.type === 'sources') {
+        // 追加引用到当前 assistant 消息
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last && last.role === 'assistant') {
+            updated[updated.length - 1] = {
+              ...last,
+              sources: msg.sources,
+            };
+          }
+          return updated;
+        });
+      }
+    });
+
+    client.on('done', () => {
+      setStreaming(false);
+      setMessages(prev => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last && last.role === 'assistant') {
+          updated[updated.length - 1] = { ...last, isStreaming: false };
+        }
+        return updated;
+      });
+    });
+
+    client.on('error', (err) => {
+      setStreaming(false);
+      setMessages(prev => [...prev, {
+        id: nextId(),
+        role: 'assistant',
+        content: `❌ 出错了：${err.message}`,
+        isStreaming: false,
+        createdAt: Date.now(),
+      }]);
+    });
+
+    return () => {
+      client.abort();
+      client.removeAllListeners();
+    };
+  }, []);
+
+  // 自动滚动到底部
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = useCallback(() => {
+    const text = input.trim();
+    if (!text || streaming) return;
+
+    const userMsg: Message = {
+      id: nextId(),
+      role: 'user',
+      content: text,
+      isStreaming: false,
+      createdAt: Date.now(),
+    };
+
+    const assistantMsg: Message = {
+      id: nextId(),
+      role: 'assistant',
+      content: '',
+      isStreaming: true,
+      createdAt: Date.now(),
+    };
+
+    setMessages(prev => [...prev, userMsg, assistantMsg]);
+    setInput('');
+    setStreaming(true);
+
+    clientRef.current?.send(text);
+  }, [input, streaming]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+      maxWidth: 800,
+      margin: '0 auto',
+      padding: '0 16px',
+    }}>
+      {/* 消息列表 */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '20px 0',
+      }}>
+        {messages.length === 0 && (
+          <div style={{
+            textAlign: 'center',
+            color: '#999',
+            marginTop: '30vh',
+            fontSize: 16,
+          }}>
+            🤖 向企业制度知识库提问吧
+          </div>
+        )}
+
+        {messages.map(msg => (
+          <div key={msg.id} style={{
+            marginBottom: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
+          }}>
+            {/* 气泡 */}
+            <div style={{
+              maxWidth: '80%',
+              padding: '12px 16px',
+              borderRadius: 12,
+              background: msg.role === 'user' ? '#e8f0fe' : '#f5f5f5',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              fontSize: 15,
+              lineHeight: 1.7,
+            }}>
+              {msg.content}
+              {msg.isStreaming && <span style={{
+                display: 'inline-block',
+                width: 8,
+                height: 16,
+                background: '#333',
+                marginLeft: 2,
+                animation: 'blink 0.8s infinite',
+              }} />}
+            </div>
+
+            {/* 引用来源按钮 */}
+            {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && !msg.isStreaming && (
+              <div style={{ marginTop: 8 }}>
+                <SourcePopover sources={msg.sources} />
+              </div>
+            )}
+          </div>
+        ))}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* 输入框 */}
+      <div style={{
+        padding: '12px 0 20px',
+        borderTop: '1px solid #eee',
+      }}>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="输入问题，按 Enter 发送..."
+            disabled={streaming}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              borderRadius: 8,
+              border: '1px solid #ddd',
+              fontSize: 15,
+              outline: 'none',
+            }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={streaming || !input.trim()}
+            style={{
+              padding: '10px 20px',
+              borderRadius: 8,
+              border: 'none',
+              background: streaming ? '#ccc' : '#3355cc',
+              color: '#fff',
+              fontSize: 15,
+              cursor: streaming ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {streaming ? '思考中...' : '发送'}
+          </button>
+        </div>
+      </div>
+
+      {/* 闪烁动画 */}
+      <style>{`
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: 验证 TypeScript 编译**
+
+```bash
+cd frontend
+npx tsc --noEmit
+```
+Expected: 无错误
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add frontend/src/components/
+git commit -m "Task 11: ChatPanel + SourcePopover 组件"
+```
+
+---
+
+### Task 12: App 根组件 + React 入口 + 样式
+
+**Files:**
+- Create: `frontend/src/App.tsx`
+- Create: `frontend/src/main.tsx`
+- Create: `frontend/src/index.css`
+
+- [ ] **Step 1: 写 App.tsx**
+
+`frontend/src/App.tsx`:
+```tsx
+import { ChatPanel } from './components/ChatPanel';
+
+export default function App() {
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* 顶部栏 */}
+      <header style={{
+        height: 52,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 24px',
+        borderBottom: '1px solid #e8e8e8',
+        background: '#fff',
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 18 }}>📋</span>
+          <span style={{ fontWeight: 600, fontSize: 16 }}>RAG 企业制度问答</span>
+        </div>
+        <div style={{ fontSize: 12, color: '#999' }}>
+          基于 DeepSeek + BGE + ChromaDB
+        </div>
+      </header>
+
+      {/* 聊天区域 */}
+      <main style={{ flex: 1, overflow: 'hidden' }}>
+        <ChatPanel />
+      </main>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: 写 main.tsx**
+
+`frontend/src/main.tsx`:
+```tsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
+```
+
+- [ ] **Step 3: 写 index.css**
+
+`frontend/src/index.css`:
+```css
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  font-size: 14px;
+  color: #333;
+  background: #fafafa;
+}
+```
+
+- [ ] **Step 4: 验证前端能启动**
+
+```bash
+cd frontend
+npx vite --host 0.0.0.0
+```
+Expected: `VITE ready in xxx ms` ➜ `http://localhost:5173/`
+
+- [ ] **Step 5: TypeScript 编译检查**
+
+```bash
+npx tsc --noEmit
+```
+Expected: 无错误
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/src/App.tsx frontend/src/main.tsx frontend/src/index.css
+git commit -m "Task 12: App 根组件 + React 入口 + 全局样式"
+```
+
+---
+
+### Task 13: 端到端集成测试
+
+**验证目标:** 后端摄入文档 → curl 发请求 → 收到 SSE 流式回答 → 前端页面正常渲染
+
+- [ ] **Step 1: 确认 .env 已配置**
+
+```bash
+cd backend
+cat .env
+```
+确认 `DEEPSEEK_API_KEY` 不是占位符，是真 key。
+
+- [ ] **Step 2: 启动后端**
+
+```bash
+cd backend
+venv\Scripts\activate
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+等看到 `Pipeline 已就绪` 后继续。
+
+- [ ] **Step 3: 摄入文档**
+
+```bash
+curl -X POST http://localhost:8000/api/documents/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"file_path": "../data/documents/员工手册.md", "category": "员工手册"}'
+```
+Expected: `{"ingested": N}`（N > 0）
+> 注：如果启动时已在 lifespan 中自动摄入，可跳过此步。此处为独立验证。
+
+- [ ] **Step 4: curl 测试 SSE 问答**
+
+```bash
+curl -N -X POST http://localhost:8000/api/chat/send \
+  -H "Content-Type: application/json" \
+  -d '{"question": "年假怎么申请"}'
+```
+Expected: 逐 token 流式输出，末尾收到 `event: sources` + `event: done`
+
+- [ ] **Step 5: 启动前端，浏览器验证**
+
+```bash
+cd frontend
+npx vite --host 0.0.0.0
+```
+打开 `http://localhost:5173`，输入"年假怎么申请"，确认：
+1. ✅ 回答逐字流式出现
+2. ✅ 回答结束后出现 📎 引用来源按钮
+3. ✅ 点击引用来源按钮弹出原文浮窗
+4. ✅ 输入"今天天气怎么样"——应回答知识库无相关内容
+
+- [ ] **Step 6: Commit + 推送**
+
+```bash
+git add -A
+git commit -m "Task 13: 集成测试验证通过"
+# 推送前替换 $GH_TOKEN 为实际值，推完擦除
+git remote set-url origin https://jjrick62:$GH_TOKEN@github.com/jjrick62/rag-enterprise-qa.git
+git push
+git remote set-url origin https://github.com/jjrick62/rag-enterprise-qa.git
+```
+
+> ⚠️ `$GH_TOKEN` 需在执行前替换为实际 GitHub Personal Access Token，推完立即擦除 remote URL 中的 token。
+
+---
+
+## ✅ 全部 13 个 Task 编写完毕
+
+MVP 文件清单对照：
+
+| # | 文件 | Task | 状态 |
+|---|------|------|------|
+| 1 | `backend/requirements.txt` | 1 | ✅ |
+| 2 | `backend/.env.example` | 1 | ✅ |
+| 3 | `backend/config.py` | 1 | ✅ |
+| 4 | `backend/schemas/chat.py` | 1 | ✅ |
+| 5 | `backend/services/base.py` | 2 | ✅ |
+| 6 | `backend/services/parser.py` | 3 | ✅ |
+| 7 | `backend/services/chunker.py` | 3 | ✅ |
+| 8 | `backend/services/embedder.py` | 4 | ✅ |
+| 9 | `backend/services/retriever.py` | 4 | ✅ |
+| 10 | `backend/services/prompts.py` | 5 | ✅ |
+| 11 | `backend/services/generator.py` | 5 | ✅ |
+| 12 | `backend/services/pipeline.py` | 6 | ✅ |
+| 13 | `backend/routers/chat.py` | 7 | ✅ |
+| 14 | `backend/main.py` | 7 | ✅ |
+| 15 | `data/documents/员工手册.md` | 8 | ✅ |
+| 16 | `frontend/package.json` 等配置文件 | 9 | ✅ |
+| 17 | `frontend/src/types/index.ts` | 9 | ✅ |
+| 18 | `frontend/src/core/EventEmitter.ts` | 10 | ✅ |
+| 19 | `frontend/src/core/ChatClient.ts` | 10 | ✅ |
+| 20 | `frontend/src/components/SourcePopover.tsx` | 11 | ✅ |
+| 21 | `frontend/src/components/ChatPanel.tsx` | 11 | ✅ |
+| 22 | `frontend/src/App.tsx` | 12 | ✅ |
+| 23 | `frontend/src/main.tsx` | 12 | ✅ |
+| 24 | `frontend/src/index.css` | 12 | ✅ |
+| 25 | `backend/tests/test_chunker.py` | 3 | ✅ |
+| 26 | `backend/tests/test_embedder.py` | 4 | ✅ |
+| 27 | `frontend/src/core/__tests__/EventEmitter.test.ts` | 10 | ✅ |
