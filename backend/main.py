@@ -69,7 +69,9 @@ app.add_middleware(
 
 # 注册路由
 from routers.chat import router as chat_router  # noqa: E402
+from routers.documents import router as documents_router  # noqa: E402
 app.include_router(chat_router)
+app.include_router(documents_router)
 
 
 @app.get("/api/health")
