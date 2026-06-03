@@ -12,15 +12,26 @@ class BGEBaaIEmbedder(BaseEmbedder):
     """BAAI/bge-small-zh-v1.5 本地嵌入器
 
     使用 sentence-transformers 库加载模型，支持 CPU/CUDA 推理。
+    模型下载到 cache_folder 指定的本地目录（项目内，不散落系统盘）。
 
     为什么 normalize_embeddings=True？
       归一化后向量点积等价于余弦相似度，ChromaDB 用余弦距离时
       计算结果更准确，且向量比较时只需点积，速度快。
     """
 
-    def __init__(self, model_name: str = "BAAI/bge-small-zh-v1.5", device: str = "cpu"):
+    def __init__(
+        self,
+        model_name: str = "BAAI/bge-small-zh-v1.5",
+        device: str = "cpu",
+        cache_folder: str = "./models",
+    ):
         self._model_name = model_name
-        self._model = SentenceTransformer(model_name, device=device)
+        # cache_folder 控制模型下载位置——统一存项目本地
+        self._model = SentenceTransformer(
+            model_name,
+            device=device,
+            cache_folder=cache_folder,
+        )
         self._dimension = self._model.get_embedding_dimension()
 
     def embed(self, texts: List[str]) -> "np.ndarray":

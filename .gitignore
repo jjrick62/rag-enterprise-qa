@@ -14,6 +14,9 @@ frontend/build/
 # Data
 data/chroma_db/
 
+# Models (local embedding model cache)
+backend/models/
+
 # Env
 .env
 .env.local
