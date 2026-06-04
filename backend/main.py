@@ -15,6 +15,7 @@ from services.embedder import BGEBaaIEmbedder
 from services.retriever import ChromaRetriever
 from services.generator import DeepSeekGenerator
 from services.reranker import BgeReranker
+from services.query_rewriter import QueryRewriter
 from services.pipeline import RAGPipeline
 
 
@@ -49,6 +50,10 @@ async def lifespan(app: FastAPI):
             model_name="BAAI/bge-reranker-v2-m3",
             device="cpu",
             cache_folder=config.model_cache_path,
+        ))
+        .with_rewriter(QueryRewriter(
+            api_key=config.deepseek_api_key,
+            base_url=config.deepseek_base_url,
         ))
         .build()
     )

@@ -11,6 +11,7 @@ from services.base import (
     BaseParser, BaseChunker, BaseEmbedder,
     BaseRetriever, BaseGenerator, BaseReranker,
 )
+from services.query_rewriter import QueryRewriter
 from schemas.chat import GenerateEvent
 
 
@@ -24,6 +25,7 @@ class RAGPipelineBuilder:
         self._retriever: Optional[BaseRetriever] = None
         self._generator: Optional[BaseGenerator] = None
         self._reranker: Optional[BaseReranker] = None  # 可选——不加 Reranker 也能跑
+        self._rewriter: Optional[QueryRewriter] = None  # 可选——Query 改写
 
     def with_parser(self, parser: BaseParser) -> "RAGPipelineBuilder":
         self._parser = parser
@@ -49,6 +51,10 @@ class RAGPipelineBuilder:
         self._reranker = reranker
         return self
 
+    def with_rewriter(self, rewriter: QueryRewriter) -> "RAGPipelineBuilder":
+        self._rewriter = rewriter
+        return self
+
     def build(self) -> "RAGPipeline":
         # 校验：五层核心组件缺一不可，Reranker 可选
         missing = []
@@ -68,6 +74,7 @@ class RAGPipelineBuilder:
             retriever=self._retriever,  # type: ignore[arg-type]
             generator=self._generator,  # type: ignore[arg-type]
             reranker=self._reranker,    # 可选
+            rewriter=self._rewriter,    # 可选
         )
 
 
@@ -87,6 +94,7 @@ class RAGPipeline:
         retriever: BaseRetriever,
         generator: BaseGenerator,
         reranker: Optional[BaseReranker] = None,
+        rewriter: Optional[QueryRewriter] = None,
     ):
         self._parser = parser
         self._chunker = chunker
@@ -94,6 +102,7 @@ class RAGPipeline:
         self._retriever = retriever
         self._generator = generator
         self._reranker = reranker
+        self._rewriter = rewriter
 
     @classmethod
     def builder(cls) -> RAGPipelineBuilder:
@@ -133,7 +142,12 @@ class RAGPipeline:
         Yields:
             GenerateEvent —— token / sources / done
         """
-        query_embedding = self._embedder.embed([question])[0]
+        # Query 改写——中文→英文，口语→术语
+        search_query = question
+        if self._rewriter:
+            search_query = await self._rewriter.rewrite(question)
+
+        query_embedding = self._embedder.embed([search_query])[0]
 
         # 有 Reranker → 粗召 20 个候选人 → 精排取 5
         # 无 Reranker → 直接取 5
