@@ -55,6 +55,7 @@ class QueryRequest(BaseModel):
     """POST /api/chat/send 的请求体"""
     question: str
     category: Optional[str] = None
+    session_id: str = "default"  # 多轮对话会话 ID，默认 "default"
 
 
 class SSEResponse(BaseModel):

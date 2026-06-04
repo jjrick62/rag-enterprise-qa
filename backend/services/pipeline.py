@@ -132,17 +132,20 @@ class RAGPipeline:
         self,
         question: str,
         category_filter: Optional[str] = None,
+        generation_context: Optional[str] = None,
     ) -> AsyncIterator[GenerateEvent]:
         """检索 + 生成，流式返回
 
         Args:
-            question: 用户问题
+            question: 用户问题（用于检索）
             category_filter: 可选，限定检索的文档类别
+            generation_context: 可选，覆盖生成阶段的 user message
+                                （多轮对话时注入历史，但不影响检索）
 
         Yields:
             GenerateEvent —— token / sources / done
         """
-        # Query 改写——中文→英文，口语→术语
+        # Query 改写——中文→英文，口语→术语（只改检索词，不改生成上下文）
         search_query = question
         if self._rewriter:
             search_query = await self._rewriter.rewrite(question)
@@ -163,5 +166,7 @@ class RAGPipeline:
         if self._reranker:
             results = self._reranker.rerank(question, results, top_k=5)
 
-        async for event in self._generator.generate(question, results):
+        # 生成阶段：如果有对话历史，用历史增强的 question，但不影响检索
+        gen_question = generation_context if generation_context else question
+        async for event in self._generator.generate(gen_question, results):
             yield event
