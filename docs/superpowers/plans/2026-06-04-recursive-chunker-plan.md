@@ -45,7 +45,33 @@ pytest tests/ -v
 ```
 Expected: 11 passed（FixedChunker 用 `heading_stack` 替代 `heading` 后行为不变）
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: ChromaDB list 字段兼容性验证（🔥 关键——chroma 的 metadata 是 JSON，存 list 进去读出来是否还是 list？）**
+
+```bash
+cd backend
+venv\Scripts\activate
+python -c "
+import chromadb, uuid
+c = chromadb.PersistentClient(path='../data/chroma_db')
+col = c.get_or_create_collection('_compat_test')
+col.add(
+    ids=[str(uuid.uuid4())],
+    documents=['test'],
+    embeddings=[[0.1]*512],
+    metadatas=[{'heading_stack': ['# A', '## B'], 'source_doc': 'test.md'}]
+)
+r = col.get(include=['metadatas'])
+meta = r['metadatas'][0]
+print(f'heading_stack type: {type(meta[\"heading_stack\"]).__name__}')
+print(f'heading_stack value: {meta[\"heading_stack\"]}')
+assert isinstance(meta['heading_stack'], list), 'FAIL: heading_stack 不是 list!'
+print('PASS: ChromaDB 正确保留了 list 类型')
+c.delete_collection('_compat_test')
+"
+```
+Expected: `PASS: ChromaDB 正确保留了 list 类型`
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add backend/
