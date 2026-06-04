@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import Config
 from services.parser import MDParser
-from services.chunker import FixedChunker
+from services.recursive_chunker import RecursiveChunker
 from services.embedder import BGEBaaIEmbedder
 from services.retriever import ChromaRetriever
 from services.generator import DeepSeekGenerator
@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     pipeline = (
         RAGPipeline.builder()
         .with_parser(MDParser())
-        .with_chunker(FixedChunker(chunk_size=500, overlap=50))
+        .with_chunker(RecursiveChunker(chunk_size=500, overlap_ratio=0.15, max_overlap=50))
         .with_embedder(embedder)
         .with_retriever(ChromaRetriever(
             persist_path=config.chroma_path,
