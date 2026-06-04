@@ -232,6 +232,13 @@ const API = 'http://localhost:8000/api/chat/send';
 
 // ── Test cases ──
 const TEST_CASES = [
+  // 中文口语测试 — Query 改写能力
+  { q: '有啥基础模型能用', tag: 'CN→EN' },
+  { q: '联邦学习咋回事', tag: 'CN→EN' },
+  { q: 'token是啥', tag: 'CN→EN' },
+  { q: '怎么部署模型', tag: 'CN→EN' },
+  { q: '数据库怎么连', tag: 'CN→EN' },
+  // 英文测试 — 原始 QA
   { q: 'What foundation models are available in watsonx.ai ?', tag: 'models' },
   { q: 'What is greedy decoding?', tag: 'decoding' },
   { q: 'What tuning parameters are available for IBM foundation models?', tag: 'tuning' },
