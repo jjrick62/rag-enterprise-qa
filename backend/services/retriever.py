@@ -36,6 +36,7 @@ class ChromaRetriever(BaseRetriever):
         query_embedding,
         top_k: int = 5,
         category_filter: Optional[str] = None,
+        query_text: Optional[str] = None,  # ChromaRetriever 不用，Hybrid 用
     ) -> List[RetrievalResult]:
         where_filter = None
         if category_filter:

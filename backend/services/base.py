@@ -97,6 +97,7 @@ class BaseRetriever(ABC):
         query_embedding: "np.ndarray",
         top_k: int = 5,
         category_filter: Optional[str] = None,
+        query_text: Optional[str] = None,
     ) -> List["RetrievalResult"]:
         """根据查询向量检索最相似的 top_k 个 Chunk
 
@@ -104,6 +105,7 @@ class BaseRetriever(ABC):
             query_embedding: 问题的嵌入向量 shape (dim,)
             top_k: 返回前 K 个结果
             category_filter: 可选，限定检索的文档类别
+            query_text: 可选，原始查询文本（给 BM25/Hybrid 检索器用）
 
         Returns:
             按相似度降序排列的 RetrievalResult 列表

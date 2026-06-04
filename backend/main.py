@@ -13,6 +13,7 @@ from services.parser import MDParser
 from services.recursive_chunker import RecursiveChunker
 from services.embedder import BGEBaaIEmbedder
 from services.retriever import ChromaRetriever
+from services.hybrid_retriever import HybridRetriever
 from services.generator import DeepSeekGenerator
 from services.reranker import BgeReranker
 from services.query_rewriter import QueryRewriter
@@ -36,9 +37,11 @@ async def lifespan(app: FastAPI):
         .with_parser(MDParser())
         .with_chunker(RecursiveChunker(chunk_size=500, overlap_ratio=0.15, max_overlap=50))
         .with_embedder(embedder)
-        .with_retriever(ChromaRetriever(
-            persist_path=config.chroma_path,
-            embedder=embedder,
+        .with_retriever(HybridRetriever(
+            vector_retriever=ChromaRetriever(
+                persist_path=config.chroma_path,
+                embedder=embedder,
+            )
         ))
         .with_generator(DeepSeekGenerator(
             api_key=config.deepseek_api_key,

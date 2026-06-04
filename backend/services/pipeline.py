@@ -157,6 +157,7 @@ class RAGPipeline:
             query_embedding=query_embedding,
             top_k=top_k,
             category_filter=category_filter,
+            query_text=search_query,  # Hybrid 检索器用 BM25
         )
 
         if self._reranker:
