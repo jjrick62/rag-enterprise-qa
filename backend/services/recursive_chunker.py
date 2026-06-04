@@ -37,6 +37,8 @@ class RecursiveChunker(BaseChunker):
     # ── 入口 ──
 
     def chunk(self, text: str, category: str, source_doc: str) -> List[Chunk]:
+        if not text or not text.strip():
+            return []
         sections = self._parse_heading_tree(text)
         chunks: List[Chunk] = []
         index = 0
