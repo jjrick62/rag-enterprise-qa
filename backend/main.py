@@ -14,6 +14,7 @@ from services.recursive_chunker import RecursiveChunker
 from services.embedder import BGEBaaIEmbedder
 from services.retriever import ChromaRetriever
 from services.generator import DeepSeekGenerator
+from services.reranker import BgeReranker
 from services.pipeline import RAGPipeline
 
 
@@ -43,6 +44,11 @@ async def lifespan(app: FastAPI):
             base_url=config.deepseek_base_url,
             model="deepseek-chat",
             temperature=0.3,
+        ))
+        .with_reranker(BgeReranker(
+            model_name="BAAI/bge-reranker-v2-m3",
+            device="cpu",
+            cache_folder=config.model_cache_path,
         ))
         .build()
     )

@@ -136,6 +136,35 @@ class BaseRetriever(ABC):
         ...
 
 
+class BaseReranker(ABC):
+    """重排序器——对候选文档列表进行精排
+
+    Embedding 检索用余弦相似度做粗排（速度快但不够精确），
+    Reranker 用 Cross-encoder 做精排（把问题+文档拼一起做阅读理解）。
+
+    流程位置：Retriever → Reranker → Generator
+    """
+
+    @abstractmethod
+    def rerank(
+        self,
+        query: str,
+        candidates: List["RetrievalResult"],
+        top_k: int = 5,
+    ) -> List["RetrievalResult"]:
+        """对候选列表精排，返回 Top-K
+
+        Args:
+            query: 用户原始问题
+            candidates: 粗排后的候选列表
+            top_k: 返回前 K 个
+
+        Returns:
+            按精排分数降序排列的 Top-K 结果，每个 score 字段已被 Reranker 覆盖
+        """
+        ...
+
+
 class BaseGenerator(ABC):
     """生成器——问题 + 检索上下文 → 流式回答
 

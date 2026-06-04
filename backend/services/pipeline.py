@@ -9,7 +9,7 @@ import os
 from typing import Optional, AsyncIterator
 from services.base import (
     BaseParser, BaseChunker, BaseEmbedder,
-    BaseRetriever, BaseGenerator,
+    BaseRetriever, BaseGenerator, BaseReranker,
 )
 from schemas.chat import GenerateEvent
 
@@ -23,6 +23,7 @@ class RAGPipelineBuilder:
         self._embedder: Optional[BaseEmbedder] = None
         self._retriever: Optional[BaseRetriever] = None
         self._generator: Optional[BaseGenerator] = None
+        self._reranker: Optional[BaseReranker] = None  # 可选——不加 Reranker 也能跑
 
     def with_parser(self, parser: BaseParser) -> "RAGPipelineBuilder":
         self._parser = parser
@@ -44,8 +45,12 @@ class RAGPipelineBuilder:
         self._generator = generator
         return self
 
+    def with_reranker(self, reranker: BaseReranker) -> "RAGPipelineBuilder":
+        self._reranker = reranker
+        return self
+
     def build(self) -> "RAGPipeline":
-        # 校验：五层缺一不可
+        # 校验：五层核心组件缺一不可，Reranker 可选
         missing = []
         for name, val in [
             ("parser", self._parser), ("chunker", self._chunker),
@@ -62,6 +67,7 @@ class RAGPipelineBuilder:
             embedder=self._embedder,    # type: ignore[arg-type]
             retriever=self._retriever,  # type: ignore[arg-type]
             generator=self._generator,  # type: ignore[arg-type]
+            reranker=self._reranker,    # 可选
         )
 
 
@@ -80,12 +86,14 @@ class RAGPipeline:
         embedder: BaseEmbedder,
         retriever: BaseRetriever,
         generator: BaseGenerator,
+        reranker: Optional[BaseReranker] = None,
     ):
         self._parser = parser
         self._chunker = chunker
         self._embedder = embedder
         self._retriever = retriever
         self._generator = generator
+        self._reranker = reranker
 
     @classmethod
     def builder(cls) -> RAGPipelineBuilder:
@@ -127,11 +135,18 @@ class RAGPipeline:
         """
         query_embedding = self._embedder.embed([question])[0]
 
+        # 有 Reranker → 粗召 20 个候选人 → 精排取 5
+        # 无 Reranker → 直接取 5
+        top_k = 20 if self._reranker else 5
+
         results = self._retriever.search(
             query_embedding=query_embedding,
-            top_k=5,
+            top_k=top_k,
             category_filter=category_filter,
         )
+
+        if self._reranker:
+            results = self._reranker.rerank(question, results, top_k=5)
 
         async for event in self._generator.generate(question, results):
             yield event
