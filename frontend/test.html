@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Pipeline — Test Console</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080e;
+    --surface: #111119;
+    --surface2: #181822;
+    --border: #252530;
+    --text: #c8c8d4;
+    --text-dim: #6b6b7b;
+    --accent: #f0a030;
+    --accent-glow: rgba(240, 160, 48, 0.15);
+    --green: #40c870;
+    --red: #f04050;
+    --blue: #5090e0;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Cascadia Code', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+  /* Grid texture overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Sidebar ── */
+  aside {
+    width: 340px; min-width: 340px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 1;
+  }
+  .sidebar-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-header .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+  .sidebar-header .dot.off { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .sidebar-header h1 {
+    font-size: 15px; font-weight: 600; letter-spacing: 0.5px;
+  }
+  .sidebar-header span {
+    font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);
+  }
+  .testcases {
+    flex: 1; overflow-y: auto; padding: 16px;
+  }
+  .testcases h3 {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-dim); margin-bottom: 12px; font-weight: 500;
+  }
+  .tc-chip {
+    display: block; width: 100%; text-align: left;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 14px; margin-bottom: 8px;
+    border-radius: 6px; cursor: pointer;
+    font-family: var(--font-body); font-size: 13px;
+    transition: all 0.15s;
+  }
+  .tc-chip:hover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .tc-chip .tag {
+    display: inline-block;
+    font-size: 9px; font-family: var(--font-mono);
+    background: rgba(240,160,48,0.15); color: var(--accent);
+    padding: 2px 6px; border-radius: 3px; margin-right: 6px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  /* ── Main ── */
+  main {
+    flex: 1; display: flex; flex-direction: column;
+    min-width: 0; z-index: 1;
+  }
+  .topbar {
+    padding: 14px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .topbar .stat {
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .topbar .stat b { color: var(--text); font-weight: 500; }
+
+  /* Messages */
+  .messages {
+    flex: 1; overflow-y: auto; padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .msg {
+    max-width: 780px; animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } }
+  .msg.user { align-self: flex-end; }
+  .msg.user .bubble {
+    background: rgba(80,144,224,0.12); border: 1px solid rgba(80,144,224,0.2);
+    border-radius: 12px 12px 4px 12px; padding: 12px 16px;
+    font-size: 14px; color: #c0d0f0;
+  }
+  .msg.assistant { align-self: flex-start; width: 100%; }
+  .msg.assistant .bubble {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px 12px 12px 4px; padding: 16px 20px;
+    font-size: 14px; line-height: 1.7;
+    white-space: pre-wrap;
+  }
+  .msg.assistant .bubble strong { color: var(--accent); }
+  .msg.assistant .bubble table {
+    width: 100%; border-collapse: collapse; margin: 10px 0;
+    font-size: 12px; font-family: var(--font-mono);
+  }
+  .msg.assistant .bubble th, .msg.assistant .bubble td {
+    border: 1px solid var(--border); padding: 6px 10px; text-align: left;
+  }
+  .msg.assistant .bubble th { background: var(--surface); color: var(--text-dim); font-weight: 500; }
+
+  /* Cursor blink */
+  .cursor {
+    display: inline-block; width: 2px; height: 16px; background: var(--accent);
+    margin-left: 2px; vertical-align: text-bottom;
+    animation: blink 0.8s steps(1) infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* Source cards */
+  .sources {
+    margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .src-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 14px;
+    font-size: 11px; font-family: var(--font-mono);
+    max-width: 320px; cursor: pointer; transition: all 0.15s;
+  }
+  .src-card:hover { border-color: var(--accent); }
+  .src-card .src-name { color: var(--text); font-weight: 500; margin-bottom: 4px; }
+  .src-card .src-meta { color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+  .src-card .score-bar {
+    height: 3px; background: var(--border); border-radius: 2px; margin-top: 6px;
+    overflow: hidden;
+  }
+  .src-card .score-bar-inner {
+    height: 100%; background: var(--accent); border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* Input */
+  .input-area {
+    padding: 16px 24px; border-top: 1px solid var(--border);
+    display: flex; gap: 10px;
+  }
+  .input-area input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--font-body); font-size: 14px;
+    padding: 12px 16px; border-radius: 8px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .input-area input:focus { border-color: var(--accent); }
+  .input-area button {
+    background: var(--accent); color: #0a0a0a;
+    border: none; padding: 12px 20px; border-radius: 8px;
+    font-family: var(--font-body); font-weight: 600; font-size: 13px;
+    cursor: pointer; letter-spacing: 0.5px; transition: opacity 0.15s;
+  }
+  .input-area button:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar: Test Cases -->
+<aside>
+  <div class="sidebar-header">
+    <div class="dot" id="status-dot"></div>
+    <div>
+      <h1>RAG Test Console</h1>
+      <span id="status-text">Connecting...</span>
+    </div>
+  </div>
+  <div class="testcases">
+    <h3>Preset Tests — watsonxDocsQA</h3>
+  </div>
+</aside>
+
+<!-- Main: Chat -->
+<main>
+  <div class="topbar">
+    <div class="stat">Pipeline: <b>RecursiveChunker + Reranker + DeepSeek</b></div>
+    <div class="stat">Docs: <b>54</b></div>
+    <div class="stat">Chunks: <b>660</b></div>
+  </div>
+  <div class="messages" id="messages">
+    <div class="msg assistant">
+      <div class="bubble" style="color:var(--text-dim);text-align:center;padding:40px;">
+        Select a test case from the left<br>or type your own question below.
+      </div>
+    </div>
+  </div>
+  <div class="input-area">
+    <input id="input" placeholder="Ask about IBM watsonx documentation..." autofocus>
+    <button id="send-btn">Send</button>
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:8000/api/chat/send';
+
+// ── Test cases ──
+const TEST_CASES = [
+  { q: 'What foundation models are available in watsonx.ai ?', tag: 'models' },
+  { q: 'What is greedy decoding?', tag: 'decoding' },
+  { q: 'What tuning parameters are available for IBM foundation models?', tag: 'tuning' },
+  { q: 'What are tokens and tokenization?', tag: 'basics' },
+  { q: 'What is the "random seed" parameter in prompt tuning experiments?', tag: 'tuning' },
+  { q: 'How to build reusable prompts?', tag: 'prompts' },
+  { q: 'What is the workflow for a Federated Learning experiment?', tag: 'fedlearn' },
+  { q: 'What are the benefits of using IBM Federated Learning?', tag: 'fedlearn' },
+  { q: 'How do I delete a deployment using the Python client?', tag: 'deploy' },
+  { q: 'What is the retrieval-augmented generation pattern?', tag: 'rag' },
+  { q: 'How do I create a connection to Microsoft SQL Server?', tag: 'db' },
+  { q: 'What is the purpose of the Sim Eval node in IBM SPSS Modeler?', tag: 'spss' },
+  { q: 'What are the key functions of the geospatial library?', tag: 'geo' },
+  { q: 'What are the properties of the Bayes Net node in Clementine?', tag: 'spss' },
+  { q: 'How can I search for assets across the platform?', tag: 'platform' },
+];
+
+// ── Render test chips ──
+const tcContainer = document.querySelector('.testcases');
+TEST_CASES.forEach((tc, i) => {
+  const chip = document.createElement('button');
+  chip.className = 'tc-chip';
+  chip.innerHTML = `<span class="tag">${tc.tag}</span>${tc.q}`;
+  chip.onclick = () => { document.getElementById('input').value = tc.q; sendMessage(); };
+  tcContainer.appendChild(chip);
+});
+
+// ── SSE streaming ──
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('send-btn');
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+
+let isStreaming = false;
+
+// Check health
+async function checkHealth() {
+  try {
+    const r = await fetch('http://localhost:8000/api/health');
+    if (r.ok) {
+      statusDot.classList.remove('off');
+      statusText.textContent = 'Backend Online';
+    }
+  } catch {
+    statusDot.classList.add('off');
+    statusText.textContent = 'Backend Offline';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 10000);
+
+function addMessage(role, content) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = content;
+  div.appendChild(bubble);
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return { div, bubble };
+}
+
+function addSources(sources) {
+  const container = document.createElement('div');
+  container.className = 'sources';
+  sources.forEach(s => {
+    const pct = Math.round(s.score * 100);
+    const card = document.createElement('div');
+    card.className = 'src-card';
+    card.title = s.excerpt;
+    card.innerHTML = `
+      <div class="src-name">${s.documentName.replace('.md','').replace(/_/g,' ').slice(0,45)}</div>
+      <div class="src-meta"><span>${s.heading || '(no heading)'}</span><b style="color:var(--accent)">${pct}%</b></div>
+      <div class="score-bar"><div class="score-bar-inner" style="width:${pct}%"></div></div>
+    `;
+    container.appendChild(card);
+  });
+  return container;
+}
+
+async function sendMessage() {
+  const question = inputEl.value.trim();
+  if (!question || isStreaming) return;
+  isStreaming = true;
+  sendBtn.disabled = true;
+  inputEl.value = '';
+
+  // Add user message
+  addMessage('user', escapeHtml(question));
+
+  // Add assistant placeholder with cursor
+  const { bubble, div } = addMessage('assistant', '');
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  bubble.appendChild(cursor);
+
+  try {
+    const response = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, category: null }),
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let accumulator = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() || '';
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split('\n');
+        let eventType = '', data = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+          else if (line.startsWith('data: ')) data = line.slice(6);
+        }
+
+        if (eventType === 'token') {
+          accumulator += data;
+          bubble.innerHTML = renderMarkdown(accumulator);
+          bubble.appendChild(cursor);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        } else if (eventType === 'sources') {
+          try {
+            const sources = JSON.parse(data);
+            if (sources.length) {
+              div.appendChild(addSources(sources));
+            }
+          } catch {}
+        }
+      }
+    }
+  } catch (err) {
+    bubble.innerHTML = `<span style="color:var(--red)">Error: ${escapeHtml(err.message)}</span>`;
+  }
+
+  cursor.remove();
+  isStreaming = false;
+  sendBtn.disabled = false;
+  inputEl.focus();
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function renderMarkdown(text) {
+  let html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^### (.+)$/gm, '<strong>$1</strong>')
+    .replace(/^## (.+)$/gm, '<strong style="font-size:1.1em">$1</strong>')
+    .replace(/^# (.+)$/gm, '<strong style="font-size:1.2em;color:var(--accent)">$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^- (.+)$/gm, '  • $1')
+    .replace(/\n/g, '<br>');
+
+  // Simple table rendering
+  if (html.includes('|')) {
+    const lines = html.split('<br>');
+    let inTable = false;
+    const result = [];
+    for (const line of lines) {
+      if (line.startsWith('  |') || line.startsWith('|')) {
+        if (!inTable) { result.push('<table>'); inTable = true; }
+        const cells = line.split('|').filter(c => c.trim());
+        const isHeader = cells.some(c => c.includes('---'));
+        if (isHeader) continue;
+        const tag = inTable && result[result.length-1] === '<table>' ? 'th' : 'td';
+        result.push('<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>');
+      } else {
+        if (inTable) { result.push('</table>'); inTable = false; }
+        result.push(line);
+      }
+    }
+    if (inTable) result.push('</table>');
+    html = result.join('<br>');
+  }
+  return html;
+}
+
+// Enter to send
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+sendBtn.addEventListener('click', sendMessage);
+</script>
+</body>
+</html>
