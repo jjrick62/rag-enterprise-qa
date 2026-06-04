@@ -38,7 +38,7 @@ class FixedChunker(BaseChunker):
                 source_doc=source_doc,
                 category=category,
                 page_number=0,
-                heading=heading,
+                heading_stack=[heading] if heading else [],
                 char_start=start,
                 char_end=end,
             )

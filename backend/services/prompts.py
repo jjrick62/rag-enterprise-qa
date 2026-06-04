@@ -88,7 +88,7 @@ def build_context_block(contexts: List[RetrievalResult]) -> str:
         meta = chunk.metadata
         block = (
             f"[文档{i}] 来源：{meta.source_doc}\n"
-            f"章节：{meta.heading or '（无标题）'}\n"
+            f"章节：{' > '.join(meta.heading_stack) if meta.heading_stack else '（无标题）'}\n"
             f"内容：{chunk.content}\n"
         )
         blocks.append(block)

@@ -9,12 +9,12 @@ from pydantic import BaseModel
 @dataclass(frozen=True)
 class ChunkMetadata:
     """每个 Chunk 的元信息——不可变，保证溯源可靠"""
-    source_doc: str       # 来源文档文件名
-    category: str         # 文档分类（员工手册/IT规范/...）
-    page_number: int      # 在原文档中的页码（MD 为 0）
-    heading: str          # 最近的标题
-    char_start: int       # 在原文档中的起始字符位置
-    char_end: int         # 在原文档中的结束字符位置
+    source_doc: str         # 来源文档文件名
+    category: str           # 文档分类（员工手册/IT规范/...）
+    page_number: int        # 在原文档中的页码（MD 为 0）
+    heading_stack: list[str]  # 完整标题层级路径 ["# 第一章", "## 1.1"]
+    char_start: int         # 在原文档中的起始字符位置
+    char_end: int           # 在原文档中的结束字符位置
 
 
 @dataclass(frozen=True)

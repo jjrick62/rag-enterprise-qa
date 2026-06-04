@@ -59,7 +59,7 @@ class DeepSeekGenerator(BaseGenerator):
         sources = [
             Source(
                 document_name=result.chunk.metadata.source_doc,
-                heading=result.chunk.metadata.heading,
+                heading=result.chunk.metadata.heading_stack[-1] if result.chunk.metadata.heading_stack else "",
                 excerpt=result.chunk.content[:200],
                 score=result.score,
             )

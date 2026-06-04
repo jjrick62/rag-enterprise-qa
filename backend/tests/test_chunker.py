@@ -68,7 +68,7 @@ class TestFixedChunker:
         """第一个 chunk 能检测到最近的标题"""
         chunker = FixedChunker(chunk_size=200, overlap=30)
         result = chunker.chunk(SAMPLE_TEXT, "员工手册", "员工手册.md")
-        assert result[0].metadata.heading == "第一章 考勤制度"
+        assert result[0].metadata.heading_stack[-1] == "第一章 考勤制度"
 
     def test_chunk_size_limit(self):
         """每个 chunk 的内容长度不超过 chunk_size"""

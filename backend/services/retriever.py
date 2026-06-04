@@ -61,7 +61,7 @@ class ChromaRetriever(BaseRetriever):
                 source_doc=meta.get("source_doc", ""),
                 category=meta.get("category", ""),
                 page_number=meta.get("page_number", 0),
-                heading=meta.get("heading", ""),
+                heading_stack=meta.get("heading_stack", []),
                 char_start=meta.get("char_start", 0),
                 char_end=meta.get("char_end", 0),
             )
@@ -88,7 +88,7 @@ class ChromaRetriever(BaseRetriever):
                 "source_doc": chunk.metadata.source_doc,
                 "category": chunk.metadata.category,
                 "page_number": chunk.metadata.page_number,
-                "heading": chunk.metadata.heading,
+                "heading_stack": chunk.metadata.heading_stack,
                 "char_start": chunk.metadata.char_start,
                 "char_end": chunk.metadata.char_end,
                 "chunk_index": chunk.chunk_index,
