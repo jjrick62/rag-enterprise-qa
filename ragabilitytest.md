@@ -1,145 +1,108 @@
 # RAG 系统能力评估报告
 
-> **评估日期**: 2026-06-05
-> **评估框架**: RAGAS 等效实现（LLM-as-Judge: DeepSeek Chat, temperature=0.0）
-> **测试数据集**: watsonxDocsQA / question_answers / test（20 条样本）
-> **参考标准**: RAGAS + Microsoft ISE 层级评估 + HERB Benchmark (Salesforce)
-> **被测管线**: RecursiveChunker + Hybrid(BM25+Vector+RRF) + Reranker(bge-v2-m3) + QueryRewriter + DeepSeek
+> **评估框架**: RAGAS 0.4.3 | **LLM Judge**: DeepSeek Chat | **测试集**: watsonxDocsQA (20 条)
+> **被测系统**: RecursiveChunker + Hybrid(BM25+Vector+RRF) + BGE-Reranker-v2-m3 + QueryRewriter + DeepSeek
 
 ---
 
-## 一、评估方法论
+## 一、评估方法
 
-参考三大企业级 RAG 评估框架，设计了四维评估方案：
+采用 RAGAS 框架三个核心指标：
 
-### 为什么自己实现而不直接用 RAGAS？
+### Faithfulness（忠实度）
 
-RAGAS 0.2.x 强依赖 `langchain-community.chat_models.vertexai`，该模块在新版 langchain 中已被移除，Windows 环境下安装必炸。本方案用相同的 Prompt 方法论 + DeepSeek API 实现等效评估：三条独立 Prompt，temperature=0.0 确保评分一致性，无额外依赖。
+两步法评估：先将回答拆解为原子声明（claims），再逐条核验每条声明是否能在检索到的文档中找到依据。
 
-### 四维评估体系
+- 得分 = 核验通过的 claims / 总 claims
+- 高分意味着"回答没有编造"
+- 低分意味着"回答中包含文档里找不到的内容"
 
-| 维度 | 指标 | 评估方法 | 参考来源 |
-|------|------|---------|-------------|
-| **检索质量** | Context Precision | LLM 判断检索文档与问题的相关性（1.0=全相关） | RAGAS `context_precision` |
-| **生成忠实度** | Faithfulness | LLM 逐句核验回答是否可追溯到参考文档（1.0=无编造） | RAGAS `faithfulness` |
-| **回答相关性** | Answer Relevancy | LLM 判断回答是否直接、完整回应问题（1.0=完美） | RAGAS `answer_relevancy` |
-| **系统鲁棒性** | 有效响应率 / 拒答率 | 统计有效回答占比 + 拒答行为分析 | HERB Benchmark |
+### Answer Relevancy（回答相关性）
 
-**LLM-as-Judge Prompt 设计**:
+将回答和原问题分别向量化（本地 BGE 模型），计算语义相似度。同时用 LLM 从回答反向生成问题，与原始问题比较。
 
-- Faithfulness: 给 LLM 看参考上下文 + 回答 → 逐句核验每句话是否能在上下文中找到依据 → 输出 0.0-1.0
-- Answer Relevancy: 给 LLM 看问题 + 回答 → 判断是否直接、完整回应 → 输出 0.0-1.0
-- Context Precision: 给 LLM 看问题 + 检索到的文档 → 判断每篇文档的相关性 → 输出 0.0-1.0
+- 高分意味着"回答直接回应了问题"
+- 低分意味着"回答跑题了或有大量无关内容"
+
+### Context Precision（上下文精度）
+
+LLM 逐段判断检索到的文档内容是否与问题相关。
+
+- 高分意味着"检索系统找到了正确的文档"
+- 低分意味着"检索回来的文档跟问题不沾边"
 
 ---
 
 ## 二、评估结果
 
-### 2.1 总览
-
-```
-综合评级: demo 级别 → 目标: 生产就绪
-
-指标                 当前值      企业要求      差距
-─────────────────────────────────────────────────────
-Faithfulness         0.645       ≥ 0.80       -0.155
-Answer Relevancy     0.680       ≥ 0.70       -0.020
-Context Precision    0.675       ≥ 0.80       -0.125
-有效响应率            100.0%      100%         ✅
-拒答率               25.0%       适当          🟡
-平均回答长度          1686 字     —            ✅
-平均来源数            5.0 条      —            ✅
-```
-
-### 2.2 检索质量 (Retrieval)
-
-| 指标 | 分数 | 企业及格线 | 状态 |
-|------|------|-----------|------|
-| **Context Precision** | **0.675** | ≥ 0.80 | 🔴 未达标 |
-| 平均来源数 | 5.0 条/问 | — | ✅ |
-
-**分档**: 优秀(>0.80): 10条 | 良好(0.60-0.80): 3条 | 较差(<0.60): 7条
-
-**根因**: 35% 的查询检索精度偏低，主要出现在跨主题查询（如 "What is an ontology?"），
-知识库缺少直接文档，BM25+向量召回的是语义接近但不精确的内容。
-
-### 2.3 生成质量 (Generation)
-
-| 指标 | 分数 | 企业及格线 | 状态 |
-|------|------|-----------|------|
-| **Faithfulness** | **0.645** | ≥ 0.80 | 🔴 未达标 |
-| **Answer Relevancy** | **0.680** | ≥ 0.70 | 🟡 接近 |
-| 平均回答长度 | 1686 字 | — | ✅ |
-
-**分档**: 优秀(>0.80): 8条 | 良好(0.60-0.80): 4条 | 较差(<0.60): 8条
-
-**根因**: 40% 样本 Faithfulness < 0.60。DeepSeek 在结构化回答模板
-（结论摘要→制度依据→关键提示→引用清单）的压力下会"填充"无依据的框架内容。
-
-### 2.4 系统鲁棒性 (Robustness)
-
-| 指标 | 分数 | 说明 |
+| 指标 | 得分 | 说明 |
 |------|------|------|
-| **有效响应率** | **100%** | 无崩溃/空返回 |
-| 拒答率 | 25.0% | 5/20 条被识别为知识库外 |
+| Faithfulness | **0.575** | 约 57.5% 的回答内容可在文档中找到原文依据 |
+| Answer Relevancy | **0.714** | 回答与问题的相关性较好 |
+| Context Precision | **0.487** | 仅 48.7% 的检索结果与问题直接相关 |
 
-**根因**: 拒答率偏高的部分原因是检索精度不够，导致系统误判"没有相关内容"。
+### 性能等级
+
+| 指标 | 当前值 | 企业级 | 差距 |
+|------|--------|--------|------|
+| Faithfulness | 0.575 | ≥0.80 | **-0.225** |
+| Answer Relevancy | 0.714 | ≥0.70 | +0.014 ✅ |
+| Context Precision | 0.487 | ≥0.80 | **-0.313** |
+
+**综合评级：Demo 级别**。系统可稳定运行、回答结构完整，但检索精度和忠实度不满足生产环境要求。
 
 ---
 
-## 三、20 条逐条明细
+## 三、问题分析
 
-| # | 问题 | Faith. | Rel. | Prec. | 长度 | 源 |
-|---|------|--------|------|-------|------|-----|
-| 1 | What foundation models are available in watsonx.ai? | 0.30 | 0.70 | 1.00 | 2107 | 5 |
-| 2 | What is greedy decoding? | 0.30 | 1.00 | 1.00 | 2636 | 5 |
-| 3 | What tuning parameters for IBM foundation models? | 0.30 | 0.30 | 0.70 | 1350 | 5 |
-| 4 | What are tokens and tokenization? | 0.90 | 0.90 | 1.00 | 2065 | 5 |
-| 5 | What is "random seed" in prompt tuning? | 0.30 | 0.00 | 0.30 | 916 | 5 |
-| 6 | How to build reusable prompts? | 0.90 | 0.90 | 1.00 | 2481 | 5 |
-| 7 | What are the functionalities of Prompt Lab? | 1.00 | 1.00 | 0.90 | 3227 | 5 |
-| 8 | How to avoid repetitive text in prompt tuning? | 0.30 | 0.00 | 0.20 | 1355 | 5 |
-| 9 | What happens to unsaved prompt text? | 0.90 | 0.70 | 0.90 | 992 | 5 |
-| 10 | Why deploy a prompt template? | 0.30 | 0.90 | 1.00 | 1721 | 5 |
-| 11 | What is trust calibration? | 0.70 | 1.00 | 0.30 | 1272 | 5 |
-| 12 | What are parameters in CLEM? | 0.30 | 0.00 | 0.20 | 1720 | 5 |
-| 13 | What is a data warehouse? | 0.70 | 1.00 | 0.70 | 1084 | 5 |
-| 14 | What is retrieval-augmented generation pattern? | 0.70 | 1.00 | 0.30 | 1843 | 5 |
-| 15 | Workflow for Federated Learning experiment? | 1.00 | 0.60 | 0.70 | 1577 | 5 |
-| 16 | Benefits of IBM Federated Learning? | 0.30 | 0.70 | 1.00 | 1744 | 5 |
-| 17 | How to delete deployment using Python client? | 0.70 | 1.00 | 1.00 | 1554 | 5 |
-| 18 | What is an ontology? | 1.00 | 0.00 | 0.00 | 412 | 5 |
-| 19 | Key functions of geospatial library? | 1.00 | 0.90 | 1.00 | 2696 | 5 |
-| 20 | What is a map chart? | 1.00 | 1.00 | 0.30 | 963 | 5 |
+### 3.1 Faithfulness = 0.575：回答存在编造
+
+RAGAS 两步法比人工一眼看去严格得多——它会逐条拆解你的回答，然后逐条去文档里找原文。我们 1500+ 字的回答被拆成 10-15 条声明，其中约 4-6 条在文档中找不到直接依据。
+
+**典型问题**：System Prompt 要求 LLM 按"结论摘要→制度依据→关键提示→引用清单→关联线索"五段结构输出。当检索到的文档只能支撑前两段时，LLM 为了填满结构会"合理推断"后三段的内容——这些推断在 RAGAS 看来就是编造。
+
+### 3.2 Context Precision = 0.487：检索召回不准
+
+近一半的检索结果跟问题不完全相关。这发生在跨主题查询（如"What is an ontology?"——知识库没有哲学本体论文档，召回的是语义相近但不相关的 IBM 术语表）和模糊查询上。
+
+**典型问题**：54 篇 IBM 文档集中在 Decision Optimization 和 Foundation Models 两个领域。一旦用户问到这两个领域之外的问题，BM25+向量做的是"尽量找相似的"而非"告诉你找不到"。
+
+### 3.3 Answer Relevancy = 0.714：刚过线
+
+回答基本能回应问题本身，说明生成链路（DeepSeek + Prompt 模板）在"回答问题"这个基本任务上合格。但提升空间在于——当检索精度低时，LLM 被不相关的上下文带偏，回答中会出现大量问题没问但文档里有的冗余内容。
 
 ---
 
 ## 四、改进路线
 
-| 优先级 | 改进项 | 目标 | 预期提升 |
-|--------|--------|------|---------|
-| **P0** | Reranker 分数阈值过滤 | Faithfulness | +0.10 |
-| **P0** | System Prompt 简化去结构化压力 | Faithfulness | +0.05 |
-| **P1** | Query 改写领域术语映射增强 | Context Precision | +0.10 |
-| **P1** | 拒答逻辑优化 | 精准拒答 | — |
-| **P2** | 知识库扩展 | 覆盖缺失领域 | +0.05 |
+### P0：检索精度——Context Precision 0.487 → 0.70
 
-**预期**: P0+P1 完成后 Faithfulness 可达 0.75-0.80。
+| 措施 | 预期提升 | 难度 |
+|------|---------|------|
+| Reranker 分数阈值过滤：score < 0.5 的 chunk 不送 LLM | +0.10 | 低 |
+| Query 改写 Prompt 优化：增加跨主题术语映射表 | +0.08 | 低 |
+| 知识库扩展：补充当前覆盖薄弱领域（NLP、数据库、安全）的文档 | +0.05 | 中 |
+
+### P0：忠实度——Faithfulness 0.575 → 0.75
+
+| 措施 | 预期提升 | 难度 |
+|------|---------|------|
+| 简化 System Prompt 输出结构：去掉"关联线索"等非必要段落，减少 LLM 填充压力 | +0.10 | 低 |
+| 检索精度提升（见上）——输入更干净，输出自然更忠实 | +0.05 | — |
+| Faithfulness 分档监控：每次部署前跑 RAGAS，低于 0.70 不发布 | — | 低 |
+
+### P1：持续评估
+
+| 措施 | 说明 |
+|------|------|
+| 每次改 Prompt 或改检索参数后重跑评估 | `python backend/eval_ragas_only.py` |
+| 回答有更新时重新生成数据集 | `python backend/gen_answers.py` |
 
 ---
 
-## 五、方法论参考
+## 五、附录
 
-| 来源 | 链接 | 借鉴 |
-|------|------|------|
-| RAGAS | https://docs.ragas.io/ | Faithfulness / Context Precision / Answer Relevancy 定义 |
-| Microsoft ISE | https://devblogs.microsoft.com/ise/ | 检索→生成层级评估模式 |
-| HERB Benchmark | https://aclanthology.org/2025.emnlp-industry.34/ | 多维度量化 + 知识库外问题处理 |
-| ViDoRe V3 | https://huggingface.co/blog/QuentinJG/introducing-vidore-v3 | 企业级检索评估标准 |
-| Open RAG Eval | https://venturebeat.com/ai/the-rag-reality-check/ | 可复现评估方法论 |
-
----
-
-> **结论**: 当前系统在 20 条标准 QA 上 Faithfulness=0.645，距企业生产标准 (≥0.80) 差 0.155。
-> 最大的两个问题——(1) 35% 查询检索精度不足 (2) 结构化 Prompt 导致 LLM 填充无依据内容。
-> P0 改进项（Reranker 阈值过滤 + Prompt 简化）预计可将 Faithfulness 提升至 0.75-0.80。
+- **评估脚本**: `backend/eval_ragas_only.py`（从缓存 JSON 读回答，只跑评估）
+- **回答生成**: `backend/gen_answers.py`（跑一遍 Pipeline，存 JSON 供评估复用）
+- **数据集**: `data/eval_dataset.json`（20 条 QA，含 question/answer/contexts/ground_truth）
+- **参考**: https://docs.ragas.io/

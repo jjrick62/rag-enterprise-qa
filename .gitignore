@@ -14,6 +14,9 @@ frontend/build/
 # Data
 data/chroma_db/
 
+# RAGAS venv (独立评估环境，不推送)
+backend/venv_ragas/
+
 # Models (local embedding model cache)
 backend/models/
 

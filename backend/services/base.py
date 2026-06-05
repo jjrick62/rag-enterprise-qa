@@ -193,3 +193,13 @@ class BaseGenerator(ABC):
               - type="done"     → 生成结束信号
         """
         ...
+
+
+class BaseEvaluator(ABC):
+    """评估器——对 RAG Pipeline 输出进行多维度质量评分"""
+
+    @abstractmethod
+    async def evaluate(self, dataset: list) -> "dict":
+        """返回 {"faithfulness": 0.8, ...}"""
+        ...
+        ...
