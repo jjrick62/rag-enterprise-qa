@@ -1,0 +1,164 @@
+{
+  "communities": [
+    {
+      "id": "community_1",
+      "entities": [
+        "box",
+        "box developer console",
+        "oauth 2.0 with jwt"
+      ],
+      "doc_ids": [
+        "Box_connection"
+      ],
+      "summary": "该主题集群主要围绕Box平台的技术集成与开发，重点介绍了Box开发者控制台（Box Developer Console）的使用，以及如何通过OAuth 2.0 with JWT（JSON Web Token）认证方式实现与Box的安全连接。核心概念包括Box连接（Box Connection）、开发者控制台配置、以及基于JWT的无服务器或服务端认证流程。该集群适合回答关于如何配置Box应用、实现自动化认证、以及通过API安全访问Box存储与内容管理功能的相关问题。"
+    },
+    {
+      "id": "community_2",
+      "entities": [
+        "client id",
+        "client secret",
+        "config.json",
+        "enterprise id",
+        "private key",
+        "private key password",
+        "public key"
+      ],
+      "doc_ids": [
+        "Box_connection"
+      ],
+      "summary": "该主题集群主要围绕Box平台的身份认证与API接入配置展开，核心涉及OAuth 2.0或JWT授权流程所需的凭证信息。包含的关键概念有client id、client secret、enterprise id、private key及其密码、public key，以及用于存储这些配置的config.json文件。该集群适合回答关于如何获取或配置Box连接参数、如何生成或管理密钥对、以及如何通过凭证文件实现应用程序与Box服务集成的问题。"
+    },
+    {
+      "id": "community_3",
+      "entities": [
+        "default value",
+        "dynamic content",
+        "prompt lab",
+        "prompt variable",
+        "static text",
+        "variable name"
+      ],
+      "doc_ids": [
+        "Building_reusable_prompts"
+      ],
+      "summary": "该主题集群主要围绕提示工程中的变量与内容管理展开，重点探讨了如何通过区分静态文本与动态内容来构建可复用的提示词。核心概念包括默认值、提示变量、变量名称以及提示实验室（Prompt Lab），这些技术用于实现提示的灵活配置与自动化生成。该集群适合回答关于如何设计可复用提示模板、管理提示中动态内容与静态文本的关系，以及通过变量化提升提示开发效率等问题。"
+    },
+    {
+      "id": "community_4",
+      "entities": [
+        "assignmentwithoncallduties",
+        "authorization",
+        "bearer",
+        "build model",
+        "constraint programming",
+        "cplex",
+        "cpo",
+        "custom constraint",
+        "decision domain",
+        "decision optimization",
+        "decision optimization experiment ui",
+        "decision optimization java models",
+        "decision optimization model",
+        "decision optimization modeling assistant",
+        "deployment space",
+        "do-samples",
+        "docplex",
+        "function",
+        "house construction scheduling",
+        "iam token",
+        "ibm cloud api key",
+        "java worker",
+        "machine learning service",
+        "manage tab",
+        "mathematical programming",
+        "ml-instance-id",
+        "modeling assistant",
+        "natural language model",
+        "notebook",
+        "notebooks",
+        "oncallduties",
+        "opl",
+        "parameter",
+        "python",
+        "rest api",
+        "shiftassignment",
+        "space-id",
+        "watson machine learning",
+        "watson machine learning python client"
+      ],
+      "doc_ids": [
+        "Decision_Optimization_Java_models",
+        "Decision_Optimization_Modeling_Assistant_scheduling_tutorial",
+        "Decision_Optimization_Modeling_Assistant_models",
+        "Decision_Optimization_Python_client_examples",
+        "Creating_advanced_custom_constraints_with_Python_in_the_Decision_Optimization_Mo",
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin",
+        "Decision_Optimization",
+        "Decision_Optimization_REST_API_deployment"
+      ],
+      "summary": "该主题集群主要围绕IBM的决策优化（Decision Optimization）技术展开，涵盖了从模型构建、约束编程到部署与API调用的完整流程。核心技术与产品包括CPLEX、CPO（约束规划）、Docplex（Python建模库）、决策优化建模助手（Modeling Assistant）以及REST API部署等，同时涉及授权认证（如IAM token、IBM Cloud API key）和实验管理界面。该集群适合回答关于如何利用数学规划或约束编程解决调度、资源分配等复杂优化问题，以及如何使用Java或Python客户端进行模型开发、自定义约束创建和云端部署的相关问题。"
+    },
+    {
+      "id": "community_5",
+      "entities": [
+        "assets tab",
+        "solve optimization problems"
+      ],
+      "doc_ids": [
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ],
+      "summary": "这个主题集群主要围绕“assets tab”和“solve optimization problems”展开，聚焦于在技术文档中如何利用资产标签（assets tab）功能来构建和解决优化问题。核心内容包括通过“Decision”工具创建约束条件与自定义决策，以实现对复杂业务场景的建模与求解。该集群适合回答诸如“如何使用资产标签配置优化模型”、“如何定义约束和决策变量”以及“如何通过Decision工具解决实际优化问题”等操作性和概念性问题。"
+    },
+    {
+      "id": "community_6",
+      "entities": [
+        "operational research"
+      ],
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_models"
+      ],
+      "summary": "该主题集群主要围绕“运筹学”（operational research）展开，聚焦于如何运用数学模型与优化方法解决复杂的决策问题。核心内容涉及决策优化建模，其中《Decision Optimization Modeling Assistant models》文档介绍了辅助构建优化模型的技术与工具。该集群适合回答关于如何利用运筹学方法进行资源分配、路径规划、生产调度等优化决策的问题，以及如何使用建模助手工具来简化模型开发流程。"
+    },
+    {
+      "id": "community_7",
+      "entities": [
+        "experiment",
+        "scenario"
+      ],
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_models"
+      ],
+      "summary": "该主题集群主要围绕“实验”与“场景”两个核心实体展开，聚焦于决策优化建模过程中的模型构建与评估方法。核心技术/产品涉及“Decision Optimization Modeling Assistant”这一建模辅助工具，它通过自动化建模流程帮助用户高效处理复杂决策问题。该集群适合回答如何利用实验设计来验证不同场景下的优化模型效果、如何通过场景对比选择最佳决策方案，以及建模助手在具体业务中如何辅助生成和调试优化模型等问题。"
+    },
+    {
+      "id": "community_8",
+      "entities": [
+        "planning and scheduling"
+      ],
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_models"
+      ],
+      "summary": "该主题集群主要围绕“规划与调度”展开，聚焦于如何通过技术手段优化资源分配与任务排序。其核心产品是“Decision Optimization Modeling Assistant models”，这是一种辅助构建决策优化模型的工具，能够帮助用户将复杂的业务约束和目标转化为可求解的数学模型。该集群适合回答与生产排程、项目计划、资源分配等相关的优化问题，例如如何最小化成本、最大化效率或满足特定时间窗口约束。通过该技术，用户可以实现从数据到可执行调度方案的自动化建模与求解。"
+    },
+    {
+      "id": "community_9",
+      "entities": [
+        "python notebook"
+      ],
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_scheduling_tutorial"
+      ],
+      "summary": "该主题集群主要围绕“Python notebook”这一实体，结合《Decision Optimization Modeling Assistant scheduling tutorial》文档，讲解了如何利用Python笔记本进行决策优化建模与调度任务。核心技术涉及决策优化建模助手（Decision Optimization Modeling Assistant）以及基于Python的调度问题求解方法。该集群适合回答关于如何使用Python notebook实现调度优化、决策建模流程以及相关工具操作步骤的问题。"
+    },
+    {
+      "id": "community_10",
+      "entities": [
+        "jupyter"
+      ],
+      "doc_ids": [
+        "Decision_Optimization_Python_client_examples"
+      ],
+      "summary": "该主题集群主要围绕Jupyter环境下的决策优化技术展开，核心内容是通过Python客户端实现优化模型的构建与求解。其中涉及的核心产品是IBM Decision Optimization的Python API，以及Jupyter Notebook作为交互式开发平台。该集群适合回答如何在Jupyter中使用Python进行线性规划、约束规划等决策优化任务的问题，例如模型编写、求解器调用及结果分析等具体操作。"
+    }
+  ]
+}

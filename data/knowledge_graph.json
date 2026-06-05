@@ -1,0 +1,761 @@
+{
+  "entities": {
+    "box": {
+      "type": "platform",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "box developer console": {
+      "type": "platform",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "oauth 2.0 with jwt": {
+      "type": "concept",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "config.json": {
+      "type": "parameter",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "client id": {
+      "type": "parameter",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "client secret": {
+      "type": "parameter",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "enterprise id": {
+      "type": "parameter",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "private key": {
+      "type": "parameter",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "private key password": {
+      "type": "parameter",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "public key": {
+      "type": "parameter",
+      "doc_ids": [
+        "Box_connection"
+      ]
+    },
+    "prompt lab": {
+      "type": "platform",
+      "doc_ids": [
+        "Building_reusable_prompts"
+      ]
+    },
+    "prompt variable": {
+      "type": "concept",
+      "doc_ids": [
+        "Building_reusable_prompts"
+      ]
+    },
+    "variable name": {
+      "type": "parameter",
+      "doc_ids": [
+        "Building_reusable_prompts"
+      ]
+    },
+    "default value": {
+      "type": "parameter",
+      "doc_ids": [
+        "Building_reusable_prompts"
+      ]
+    },
+    "static text": {
+      "type": "concept",
+      "doc_ids": [
+        "Building_reusable_prompts"
+      ]
+    },
+    "dynamic content": {
+      "type": "concept",
+      "doc_ids": [
+        "Building_reusable_prompts"
+      ]
+    },
+    "decision optimization modeling assistant": {
+      "type": "platform",
+      "doc_ids": [
+        "Creating_advanced_custom_constraints_with_Python_in_the_Decision_Optimization_Mo",
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "python": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization",
+        "Creating_advanced_custom_constraints_with_Python_in_the_Decision_Optimization_Mo"
+      ]
+    },
+    "custom constraint": {
+      "type": "concept",
+      "doc_ids": [
+        "Creating_advanced_custom_constraints_with_Python_in_the_Decision_Optimization_Mo"
+      ]
+    },
+    "parameter": {
+      "type": "parameter",
+      "doc_ids": [
+        "Creating_advanced_custom_constraints_with_Python_in_the_Decision_Optimization_Mo"
+      ]
+    },
+    "function": {
+      "type": "concept",
+      "doc_ids": [
+        "Creating_advanced_custom_constraints_with_Python_in_the_Decision_Optimization_Mo"
+      ]
+    },
+    "notebook": {
+      "type": "tool",
+      "doc_ids": [
+        "Decision_Optimization_Python_client_examples",
+        "Creating_advanced_custom_constraints_with_Python_in_the_Decision_Optimization_Mo"
+      ]
+    },
+    "shiftassignment": {
+      "type": "concept",
+      "doc_ids": [
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "machine learning service": {
+      "type": "platform",
+      "doc_ids": [
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "do-samples": {
+      "type": "platform",
+      "doc_ids": [
+        "Decision_Optimization_Python_client_examples",
+        "Decision_Optimization_Modeling_Assistant_scheduling_tutorial",
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "oncallduties": {
+      "type": "concept",
+      "doc_ids": [
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "assignmentwithoncallduties": {
+      "type": "concept",
+      "doc_ids": [
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "build model": {
+      "type": "api",
+      "doc_ids": [
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "manage tab": {
+      "type": "api",
+      "doc_ids": [
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "assets tab": {
+      "type": "api",
+      "doc_ids": [
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "solve optimization problems": {
+      "type": "api",
+      "doc_ids": [
+        "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin"
+      ]
+    },
+    "decision optimization": {
+      "type": "platform",
+      "doc_ids": [
+        "Decision_Optimization",
+        "Decision_Optimization_Modeling_Assistant_models",
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    },
+    "watson machine learning": {
+      "type": "platform",
+      "doc_ids": [
+        "Decision_Optimization",
+        "Decision_Optimization_Java_models",
+        "Decision_Optimization_Python_client_examples",
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    },
+    "modeling assistant": {
+      "type": "tool",
+      "doc_ids": [
+        "Decision_Optimization",
+        "Decision_Optimization_Modeling_Assistant_models",
+        "Decision_Optimization_Modeling_Assistant_scheduling_tutorial"
+      ]
+    },
+    "opl": {
+      "type": "tool",
+      "doc_ids": [
+        "Decision_Optimization",
+        "Decision_Optimization_Java_models",
+        "Decision_Optimization_Python_client_examples"
+      ]
+    },
+    "notebooks": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization"
+      ]
+    },
+    "decision optimization experiment ui": {
+      "type": "platform",
+      "doc_ids": [
+        "Decision_Optimization",
+        "Decision_Optimization_Python_client_examples"
+      ]
+    },
+    "mathematical programming": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization"
+      ]
+    },
+    "constraint programming": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization"
+      ]
+    },
+    "decision optimization java models": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_Java_models"
+      ]
+    },
+    "rest api": {
+      "type": "api",
+      "doc_ids": [
+        "Decision_Optimization_Java_models",
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    },
+    "java worker": {
+      "type": "tool",
+      "doc_ids": [
+        "Decision_Optimization_Java_models"
+      ]
+    },
+    "cplex": {
+      "type": "tool",
+      "doc_ids": [
+        "Decision_Optimization_Java_models",
+        "Decision_Optimization_Python_client_examples"
+      ]
+    },
+    "cpo": {
+      "type": "tool",
+      "doc_ids": [
+        "Decision_Optimization_Java_models"
+      ]
+    },
+    "operational research": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_models"
+      ]
+    },
+    "experiment": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_models"
+      ]
+    },
+    "scenario": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_models"
+      ]
+    },
+    "natural language model": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_models"
+      ]
+    },
+    "decision domain": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_models"
+      ]
+    },
+    "planning and scheduling": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_models"
+      ]
+    },
+    "house construction scheduling": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_scheduling_tutorial"
+      ]
+    },
+    "python notebook": {
+      "type": "tool",
+      "doc_ids": [
+        "Decision_Optimization_Modeling_Assistant_scheduling_tutorial"
+      ]
+    },
+    "watson machine learning python client": {
+      "type": "api",
+      "doc_ids": [
+        "Decision_Optimization_Python_client_examples"
+      ]
+    },
+    "decision optimization model": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_Python_client_examples"
+      ]
+    },
+    "docplex": {
+      "type": "tool",
+      "doc_ids": [
+        "Decision_Optimization_Python_client_examples"
+      ]
+    },
+    "jupyter": {
+      "type": "tool",
+      "doc_ids": [
+        "Decision_Optimization_Python_client_examples"
+      ]
+    },
+    "iam token": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    },
+    "ibm cloud api key": {
+      "type": "parameter",
+      "doc_ids": [
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    },
+    "space-id": {
+      "type": "parameter",
+      "doc_ids": [
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    },
+    "ml-instance-id": {
+      "type": "parameter",
+      "doc_ids": [
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    },
+    "authorization": {
+      "type": "parameter",
+      "doc_ids": [
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    },
+    "bearer": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    },
+    "deployment space": {
+      "type": "concept",
+      "doc_ids": [
+        "Decision_Optimization_REST_API_deployment"
+      ]
+    }
+  },
+  "relations": [
+    {
+      "source": "box",
+      "target": "box developer console",
+      "type": "depends_on",
+      "desc": "Box connection requires creating a custom app in Box Developer Console"
+    },
+    {
+      "source": "box developer console",
+      "target": "oauth 2.0 with jwt",
+      "type": "uses",
+      "desc": "Box Developer Console uses OAuth 2.0 with JWT for authentication"
+    },
+    {
+      "source": "config.json",
+      "target": "client id",
+      "type": "part_of",
+      "desc": "config.json contains Client ID"
+    },
+    {
+      "source": "config.json",
+      "target": "client secret",
+      "type": "part_of",
+      "desc": "config.json contains Client Secret"
+    },
+    {
+      "source": "config.json",
+      "target": "enterprise id",
+      "type": "part_of",
+      "desc": "config.json contains Enterprise ID"
+    },
+    {
+      "source": "config.json",
+      "target": "private key",
+      "type": "part_of",
+      "desc": "config.json contains Private Key"
+    },
+    {
+      "source": "config.json",
+      "target": "private key password",
+      "type": "part_of",
+      "desc": "config.json contains Private Key Password"
+    },
+    {
+      "source": "config.json",
+      "target": "public key",
+      "type": "part_of",
+      "desc": "config.json contains Public Key"
+    },
+    {
+      "source": "prompt variable",
+      "target": "prompt lab",
+      "type": "part_of",
+      "desc": "prompt variable 是 Prompt Lab 中的功能"
+    },
+    {
+      "source": "variable name",
+      "target": "prompt variable",
+      "type": "part_of",
+      "desc": "variable name 是 prompt variable 的属性"
+    },
+    {
+      "source": "default value",
+      "target": "prompt variable",
+      "type": "part_of",
+      "desc": "default value 是 prompt variable 的属性"
+    },
+    {
+      "source": "prompt variable",
+      "target": "static text",
+      "type": "uses",
+      "desc": "prompt variable 用于替换 static text 中的内容"
+    },
+    {
+      "source": "prompt variable",
+      "target": "dynamic content",
+      "type": "uses",
+      "desc": "prompt variable 支持动态内容替换"
+    },
+    {
+      "source": "decision optimization modeling assistant",
+      "target": "custom constraint",
+      "type": "uses",
+      "desc": "Modeling Assistant supports creating custom constraints"
+    },
+    {
+      "source": "custom constraint",
+      "target": "python",
+      "type": "uses",
+      "desc": "Custom constraints are implemented using Python"
+    },
+    {
+      "source": "custom constraint",
+      "target": "parameter",
+      "type": "depends_on",
+      "desc": "Custom constraints have parameters that are passed to the Python function"
+    },
+    {
+      "source": "custom constraint",
+      "target": "function",
+      "type": "depends_on",
+      "desc": "Custom constraints require a Python function to implement the rule"
+    },
+    {
+      "source": "notebook",
+      "target": "python",
+      "type": "uses",
+      "desc": "Notebook can be used to edit and debug Python code for custom rules"
+    },
+    {
+      "source": "shiftassignment",
+      "target": "do-samples",
+      "type": "part_of",
+      "desc": "ShiftAssignment sample is provided in the DO-samples repository"
+    },
+    {
+      "source": "decision optimization modeling assistant",
+      "target": "shiftassignment",
+      "type": "uses",
+      "desc": "Decision Optimization Modeling Assistant uses ShiftAssignment as an example"
+    },
+    {
+      "source": "assignmentwithoncallduties",
+      "target": "shiftassignment",
+      "type": "part_of",
+      "desc": "AssignmentWithOnCallDuties is a scenario within the ShiftAssignment model"
+    },
+    {
+      "source": "oncallduties",
+      "target": "assignmentwithoncallduties",
+      "type": "part_of",
+      "desc": "OnCallDuties is a custom decision used in the AssignmentWithOnCallDuties scenario"
+    },
+    {
+      "source": "machine learning service",
+      "target": "decision optimization modeling assistant",
+      "type": "depends_on",
+      "desc": "Decision Optimization Modeling Assistant requires a Machine Learning service to be associated"
+    },
+    {
+      "source": "build model",
+      "target": "decision optimization modeling assistant",
+      "type": "part_of",
+      "desc": "Build model is a feature of Decision Optimization Modeling Assistant"
+    },
+    {
+      "source": "manage tab",
+      "target": "machine learning service",
+      "type": "uses",
+      "desc": "Manage tab is used to associate a Machine Learning service"
+    },
+    {
+      "source": "assets tab",
+      "target": "solve optimization problems",
+      "type": "uses",
+      "desc": "Assets tab is used to access Solve optimization problems"
+    },
+    {
+      "source": "decision optimization",
+      "target": "watson machine learning",
+      "type": "depends_on",
+      "desc": "Decision Optimization can deploy models with Watson Machine Learning"
+    },
+    {
+      "source": "decision optimization",
+      "target": "modeling assistant",
+      "type": "uses",
+      "desc": "Decision Optimization uses Modeling Assistant for natural language expressions"
+    },
+    {
+      "source": "decision optimization",
+      "target": "opl",
+      "type": "uses",
+      "desc": "Decision Optimization supports OPL for model creation"
+    },
+    {
+      "source": "decision optimization",
+      "target": "python",
+      "type": "uses",
+      "desc": "Decision Optimization supports Python for model creation"
+    },
+    {
+      "source": "decision optimization",
+      "target": "notebooks",
+      "type": "uses",
+      "desc": "Decision Optimization models can be built with notebooks"
+    },
+    {
+      "source": "decision optimization",
+      "target": "decision optimization experiment ui",
+      "type": "part_of",
+      "desc": "Decision Optimization experiment UI is part of Decision Optimization"
+    },
+    {
+      "source": "decision optimization",
+      "target": "mathematical programming",
+      "type": "uses",
+      "desc": "Decision Optimization provides engines for mathematical programming"
+    },
+    {
+      "source": "decision optimization",
+      "target": "constraint programming",
+      "type": "uses",
+      "desc": "Decision Optimization provides engines for constraint programming"
+    },
+    {
+      "source": "decision optimization java models",
+      "target": "watson machine learning",
+      "type": "depends_on",
+      "desc": "Decision Optimization Java models can be created and run using Watson Machine Learning REST API"
+    },
+    {
+      "source": "decision optimization java models",
+      "target": "rest api",
+      "type": "uses",
+      "desc": "Decision Optimization Java models use Watson Machine Learning REST API"
+    },
+    {
+      "source": "java worker",
+      "target": "cplex",
+      "type": "uses",
+      "desc": "Java worker can package CPLEX models"
+    },
+    {
+      "source": "java worker",
+      "target": "cpo",
+      "type": "uses",
+      "desc": "Java worker can package CPO models"
+    },
+    {
+      "source": "java worker",
+      "target": "opl",
+      "type": "uses",
+      "desc": "Java worker can package OPL models"
+    },
+    {
+      "source": "modeling assistant",
+      "target": "decision optimization",
+      "type": "part_of",
+      "desc": "Modeling Assistant is a tool within Decision Optimization"
+    },
+    {
+      "source": "natural language model",
+      "target": "modeling assistant",
+      "type": "uses",
+      "desc": "natural language model is created using Modeling Assistant"
+    },
+    {
+      "source": "decision domain",
+      "target": "natural language model",
+      "type": "part_of",
+      "desc": "decision domain is selected before creating natural language model"
+    },
+    {
+      "source": "scenario",
+      "target": "experiment",
+      "type": "part_of",
+      "desc": "scenario is created by default in the experiment UI"
+    },
+    {
+      "source": "modeling assistant",
+      "target": "house construction scheduling",
+      "type": "uses",
+      "desc": "Modeling Assistant用于定义、制定和运行房屋建设调度模型"
+    },
+    {
+      "source": "house construction scheduling",
+      "target": "do-samples",
+      "type": "part_of",
+      "desc": "房屋建设调度模型是DO-samples示例的一部分"
+    },
+    {
+      "source": "watson machine learning python client",
+      "target": "decision optimization model",
+      "type": "uses",
+      "desc": "Python client用于部署和运行决策优化模型"
+    },
+    {
+      "source": "decision optimization model",
+      "target": "watson machine learning",
+      "type": "part_of",
+      "desc": "决策优化模型部署在Watson Machine Learning平台上"
+    },
+    {
+      "source": "notebook",
+      "target": "do-samples",
+      "type": "part_of",
+      "desc": "notebook位于DO-samples示例库中"
+    },
+    {
+      "source": "cplex",
+      "target": "decision optimization model",
+      "type": "uses",
+      "desc": "CPLEX作为求解器用于决策优化模型"
+    },
+    {
+      "source": "docplex",
+      "target": "decision optimization model",
+      "type": "uses",
+      "desc": "DOcplex作为建模工具用于决策优化模型"
+    },
+    {
+      "source": "opl",
+      "target": "decision optimization model",
+      "type": "uses",
+      "desc": "OPL作为建模语言用于决策优化模型"
+    },
+    {
+      "source": "rest api",
+      "target": "watson machine learning",
+      "type": "part_of",
+      "desc": "REST API is part of Watson Machine Learning"
+    },
+    {
+      "source": "decision optimization",
+      "target": "watson machine learning",
+      "type": "uses",
+      "desc": "Decision Optimization model is deployed using Watson Machine Learning"
+    },
+    {
+      "source": "iam token",
+      "target": "rest api",
+      "type": "depends_on",
+      "desc": "IAM token is required for REST API authentication"
+    },
+    {
+      "source": "ibm cloud api key",
+      "target": "iam token",
+      "type": "depends_on",
+      "desc": "IBM Cloud API key is used to generate IAM token"
+    },
+    {
+      "source": "space-id",
+      "target": "rest api",
+      "type": "depends_on",
+      "desc": "SPACE-ID is required in REST API calls"
+    },
+    {
+      "source": "ml-instance-id",
+      "target": "rest api",
+      "type": "depends_on",
+      "desc": "ML-Instance-ID is required in REST API calls"
+    },
+    {
+      "source": "authorization",
+      "target": "rest api",
+      "type": "depends_on",
+      "desc": "Authorization header is used in REST API calls"
+    },
+    {
+      "source": "bearer",
+      "target": "authorization",
+      "type": "part_of",
+      "desc": "Bearer token is part of Authorization header"
+    },
+    {
+      "source": "deployment space",
+      "target": "watson machine learning",
+      "type": "part_of",
+      "desc": "Deployment space is a concept in Watson Machine Learning"
+    }
+  ]
+}
