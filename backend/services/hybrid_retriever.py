@@ -26,7 +26,34 @@ class HybridRetriever(BaseRetriever):
     def __init__(self, vector_retriever: BaseRetriever):
         self._vector = vector_retriever
         self._bm25: Optional[BM25Okapi] = None
-        self._bm25_chunks: List[Chunk] = []  # 跟 BM25 语料库一一对应
+        self._bm25_chunks: List[Chunk] = []
+        # 从 ChromaDB 已有数据重建 BM25（服务重启时 ChromaDB 数据在磁盘上，BM25 在内存里丢了）
+        self._rebuild_from_chromadb()
+
+    def _rebuild_from_chromadb(self):
+        """从 ChromaDB 已有数据重建 BM25 索引"""
+        try:
+            results = self._vector._collection.get(include=["documents", "metadatas"])
+            if results["ids"]:
+                for i in range(len(results["ids"])):
+                    meta = results["metadatas"][i]
+                    from schemas.chat import Chunk, ChunkMetadata
+                    chunk = Chunk(
+                        content=results["documents"][i],
+                        metadata=ChunkMetadata(
+                            source_doc=meta.get("source_doc", ""),
+                            category=meta.get("category", ""),
+                            page_number=meta.get("page_number", 0),
+                            heading_stack=meta.get("heading_stack", []),
+                            char_start=meta.get("char_start", 0),
+                            char_end=meta.get("char_end", 0),
+                        ),
+                        chunk_index=meta.get("chunk_index", 0),
+                    )
+                    self._bm25_chunks.append(chunk)
+                self._rebuild_bm25()
+        except Exception:
+            pass  # ChromaDB 为空或不可用，BM25 保持空状态
 
     def search(
         self,
@@ -119,17 +146,9 @@ class HybridRetriever(BaseRetriever):
             chunk_scores[key] = chunk_scores.get(key, 0) + 1.0 / (self.RRF_K + rank + 1)
             chunk_map[key] = r
 
-        # 按 source_doc 分组——同文档只保留最高分 chunk
-        doc_best: dict[str, tuple[float, RetrievalResult]] = {}
-        for key, score in chunk_scores.items():
-            result = chunk_map[key]
-            doc_id = result.chunk.metadata.source_doc
-            if doc_id not in doc_best or score > doc_best[doc_id][0]:
-                doc_best[doc_id] = (score, result)
-
-        # 按文档级 RRF 分降序
-        sorted_docs = sorted(doc_best.values(), key=lambda x: x[0], reverse=True)[:top_k]
+        # 按 RRF 分降序
+        sorted_keys = sorted(chunk_scores, key=chunk_scores.get, reverse=True)[:top_k]
         return [
-            RetrievalResult(chunk=doc[1].chunk, score=doc[0])
-            for doc in sorted_docs
+            RetrievalResult(chunk=chunk_map[k].chunk, score=chunk_scores[k])
+            for k in sorted_keys
         ]
