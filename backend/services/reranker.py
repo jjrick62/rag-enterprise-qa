@@ -26,6 +26,7 @@ class BgeReranker(BaseReranker):
             model_name,
             device=device,
             cache_folder=cache_folder,
+            local_files_only=True,  # 模型已在本地，不连 HF
         )
 
     def rerank(

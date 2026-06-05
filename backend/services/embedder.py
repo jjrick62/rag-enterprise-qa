@@ -27,10 +27,12 @@ class BGEBaaIEmbedder(BaseEmbedder):
     ):
         self._model_name = model_name
         # cache_folder 控制模型下载位置——统一存项目本地
+        # local_files_only=True —— 模型已在本地，不连 HuggingFace（避免超时）
         self._model = SentenceTransformer(
             model_name,
             device=device,
             cache_folder=cache_folder,
+            local_files_only=True,
         )
         self._dimension = self._model.get_embedding_dimension()
 
