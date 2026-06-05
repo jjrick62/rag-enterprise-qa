@@ -43,16 +43,15 @@ class BgeReranker(BaseReranker):
             (query, c.chunk.content) for c in candidates
         ]
 
-        # Cross-encoder 批量打分
-        scores = self._model.predict(
+        # Cross-encoder predict() 输出原始 logits
+        # sigmoid 把 logits 映射到 [0,1]——标准做法，保留单调性
+        # logit=0 → 0.50 (不确定), logit>0 → >0.50 (相关), logit<0 → <0.50 (不相关)
+        import numpy as np
+        scores = np.array(self._model.predict(
             pairs,
             show_progress_bar=False,
-        )
-
-        # 分数归一化到 [0, 1]（Cross-encoder 输出是 logits）
-        # 用 sigmoid 把 logits 映射为概率
-        import numpy as np
-        scores = 1.0 / (1.0 + np.exp(-np.array(scores)))
+        ))
+        scores = 1.0 / (1.0 + np.exp(-scores))
 
         # 按分數降序排列
         scored = sorted(
