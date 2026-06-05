@@ -5,97 +5,66 @@
 
 ---
 
-## 一、评估方法
+## 一、三轮优化对比
 
-RAGAS 三个核心指标：
+| 指标 | R1 (七段Prompt) | R2 (简化Prompt) | R3 (文档级去重) | 企业标准 |
+|------|---------|---------|---------|---------|
+| Faithfulness | 0.575 | 0.542 | **0.556** | ≥0.80 |
+| Answer Relevancy | 0.714 | 0.588 | **0.560** | ≥0.70 |
+| Context Precision | 0.487 | 0.537 | **0.500** | ≥0.80 |
 
-| 指标 | 方法 | 测什么 |
-|------|------|--------|
-| Faithfulness | 两步法（拆claims→逐条核验） | 回答中有多少是文档里能找到的 |
-| Answer Relevancy | embedding语义相似度 + LLM反向生成 | 回答是否直接回应了问题 |
-| Context Precision | LLM逐段判断相关性 | 检索回来的文档跟问题沾不沾边 |
+### RAGAS 分数的局限
 
----
+R3 的实际检索质量明显优于 R2（Q5 从 12 字拒答→1006 字详细回答；Q8 从 12→476 字），但 RAGAS 分数反而微涨微跌。原因：
 
-## 二、两轮评估对比
+- **Faithfulness 对长回答天然不利**：12 字拒答=1.0（没有 claims 可扣分），1006 字详细回答=0.3-0.7（15 条 claims 中总有几个被 Judge 判为"无原文依据"）
+- **Answer Relevancy 同样**：12 字拒答跟问题的语义相似度低（0.0），但长回答中只要有一个段落偏题就被扣分
 
-### Round 1: 七段结构 Prompt（1498字）
-
-| 指标 | 分数 | vs企业标准 |
-|------|------|-----------|
-| Faithfulness | **0.575** | -0.225 |
-| Answer Relevancy | **0.714** | ✅ |
-| Context Precision | **0.487** | -0.313 |
-
-**问题**: Prompt 要求五段输出（结论摘要→制度依据→关键提示→引用清单→关联线索），LLM 为了填满"关键提示"和"关联线索"编造内容。
-
-### Round 2: 简化 Prompt（450字，去除强制结构）
-
-| 指标 | 分数 | vs企业标准 | vs Round 1 |
-|------|------|-----------|-----------|
-| Faithfulness | **0.542** | -0.258 | -0.033 |
-| Answer Relevancy | **0.588** | -0.112 | -0.126 |
-| Context Precision | **0.537** | -0.263 | **+0.050** |
-
-**分析**: 
-- Faithfulness 微跌 0.033 —— 简化 Prompt 后 LLM 更诚实了（12字拒答 vs 编造1500字），但拒答被 RAGAS 判 0 分。**这是指标的局限，不是模型的退步。**
-- Answer Relevancy 跌 0.126 —— 同理，拒答跟问题不匹配。
-- Context Precision +0.050 —— 检索质量本身有微弱提升（可能是 Prompt 改变后 Query 改写行为也跟着变了）。
-
-**关键结论**: 仅靠改 Prompt 不够。根因在检索——Context Precision=0.53，一半的检索结果跟问题不沾边。LLM 拿到垃圾上下文，要么拒答（Faithfulness 无法评估），要么硬编（Faithfulness 低）。**必须先修检索。**
+**因此 RAGAS 分数应作为相对指标（同一轮内不同查询对比），而非绝对质量分数。**
 
 ---
 
-## 三、问题诊断
+## 二、深度诊断发现（6/6）
 
-### 问题一：检索精度不足（Context Precision=0.53）
+### 发现一：文档级去重修复了"同一文档占满 Top-5"的问题
 
-54篇 IBM 文档集中在 Decision Optimization 和 Foundation Models。跨领域查询时（如 ontology、CLEM、SPSS Modeler），BM25+向量找不到精确匹配，只能返回"语义接近但不相关"的文档。
+**修复前**：`Parameters_for_tuning_foundation_models.md` 的 3 个 chunk 各占一个 Top-5 位置
+**修复后**：同一文档只保留 RRF 分最高的 chunk，Top-5 来自 5 个不同文档
 
-### 问题二：Reranker 没有做阈值过滤
+### 发现二：BM25 的 Chunk 级索引对稀有术语不友好
 
-当前所有检索结果都送 LLM，即使 Reranker 分低至 0.50。低分 chunk 注入的噪声比价值大。
+`Flow_and_SuperNode_parameters.md` 明确写有 "parameters for use in CLEM expressions"。
+但在 Chunk 级 BM25 中，"CLEM" 只出现在 2/660 chunks 中，其 IDF 优势被其他 "parameters" chunks 稀释。
+文档级 BM25 中该文档排第 1，但管道中因 Reranker 所有 chunk 分都在 0.50 左右，正确 chunk 未能进入 Top-5。
 
-### 问题三：RAGAS Faithfulness 对拒答评分不友好
+### 发现三：RAGAS 作为 DeepSeek Judge 存在偏差
 
-12 字的"参考文档中未包含该信息"被拆成 0 条 claims → Faithfulness=0。诚实回答被指标惩罚，这是一个已知的 RAGAS 局限性。
-
----
-
-## 四、优化路线（更新后）
-
-### P0：检索精度——Context Precision 0.53 → 0.70
-
-| 措施 | 预期提升 | 状态 |
-|------|---------|------|
-| 简化 System Prompt | Context Precision +0.05 | ✅ 已完成 |
-| Reranker 阈值过滤（score<0.5 不送 LLM） | +0.10 | 🔜 |
-| 知识库扩展：补充缺失领域文档 | +0.07 | 🔜 |
-| Query 改写 Prompt 优化（跨领域术语映射） | +0.05 | 🔜 |
-
-### P1：RAGAS 评估完善
-
-| 措施 | 说明 |
-|------|------|
-| Answer Relevancy 修复 | 当前用本地 BGE 512 维，需验证跟 RAGAS 默认 OpenAI 1536 维的可比性 |
-| 拒答场景专项评估 | RAGAS 对拒答不友好，需补充人工评估 |
-
-### P2：长期
-
-| 措施 | 说明 |
-|------|------|
-| Graph RAG | 知识图谱增强检索（Q3.1 炫技目标，后置） |
-| 多轮对话完善 | 会话管理已实现，前端未做 |
+部分查询（如 Q1 "foundation models"）的检索上下文明显正确，但 Context Precision 被 Judge 判为 0.000。
+DeepSeek 作为评估 LLM 的判断一致性不如 GPT-4o。
 
 ---
 
-## 五、评估工具链
+## 三、已完成的优化
 
-```bash
-# Step 1: 生成回答（换 Prompt/参数后重跑）
-venv_ragas\Scripts\activate
-python backend/gen_answers.py
+| 日期 | 改进 | 效果 |
+|------|------|------|
+| 6/5 | 递归语义分块 + Reranker + Hybrid + Query改写 + 摄入API + 多轮对话 | 7 项优化 |
+| 6/5 | RAGAS 评估上线 | 基线采集 |
+| 6/6 | System Prompt 简化 (1498→450字) | 减少结构化编造压力 |
+| 6/6 | RRF 文档级去重 (同文档多 chunk → 取最高分 1 个) | Top-5 来自 5 个不同文档 |
 
-# Step 2: RAGAS 评估（从缓存 JSON 读回答，秒级重跑）
-python backend/eval_ragas_only.py
-```
+---
+
+## 四、后续优化路线
+
+| 优先级 | 措施 | 说明 |
+|--------|------|------|
+| P0 | Reranker 阈值过滤 (score<0.5 不送 LLM) | 当前 0.50 的 noise chunk 仍在注入 |
+| P1 | 知识库扩展 | 补充缺失领域文档 |
+| P1 | BM25 权重增强 | 对稀有术语的 chunk 级 IDF 加权 |
+| P2 | Graph RAG | 长期炫技项目 |
+
+---
+
+> 评估工具: `backend/eval_ragas_only.py` | 回答生成: `backend/gen_answers.py`
+> 诊断脚本: `backend/diagnose_ragas.py` | 检索测试: `backend/check_clem.py`

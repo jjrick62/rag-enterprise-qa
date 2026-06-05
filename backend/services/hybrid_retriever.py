@@ -96,28 +96,40 @@ class HybridRetriever(BaseRetriever):
         bm25_results: List[RetrievalResult],
         top_k: int,
     ) -> List[RetrievalResult]:
-        """RRF (Reciprocal Rank Fusion) 融合双路结果
+        """RRF 融合 + 文档级去重
 
-        公式: RRF(d) = Σ 1/(k + rank_i(d))
-        只看排名不看原始分——解决 BM25 [0,+∞) 和向量 [0,1] 量纲不统一的问题。
+        1. 双路 RRF 融合（chunk 级）
+        2. 按 source_doc 去重——同一文档只保留 RRF 分最高的 chunk
+        3. 取 top_k 个不同文档
+
+        这解决了"同文档多个 chunk 占位"的问题，
+        让 Top-K 来自 K 个不同的文档，增加检索多样性。
         """
-        # 用 chunk content 的 hash 作为去重 key
-        scores: dict[int, float] = {}
+        # 用 chunk content hash 去重
+        chunk_scores: dict[int, float] = {}
         chunk_map: dict[int, RetrievalResult] = {}
 
         for rank, r in enumerate(vector_results):
             key = hash(r.chunk.content)
-            scores[key] = scores.get(key, 0) + 1.0 / (self.RRF_K + rank + 1)
+            chunk_scores[key] = chunk_scores.get(key, 0) + 1.0 / (self.RRF_K + rank + 1)
             chunk_map[key] = r
 
         for rank, r in enumerate(bm25_results):
             key = hash(r.chunk.content)
-            scores[key] = scores.get(key, 0) + 1.0 / (self.RRF_K + rank + 1)
+            chunk_scores[key] = chunk_scores.get(key, 0) + 1.0 / (self.RRF_K + rank + 1)
             chunk_map[key] = r
 
-        # 按 RRF 分降序
-        sorted_keys = sorted(scores, key=scores.get, reverse=True)[:top_k]
+        # 按 source_doc 分组——同文档只保留最高分 chunk
+        doc_best: dict[str, tuple[float, RetrievalResult]] = {}
+        for key, score in chunk_scores.items():
+            result = chunk_map[key]
+            doc_id = result.chunk.metadata.source_doc
+            if doc_id not in doc_best or score > doc_best[doc_id][0]:
+                doc_best[doc_id] = (score, result)
+
+        # 按文档级 RRF 分降序
+        sorted_docs = sorted(doc_best.values(), key=lambda x: x[0], reverse=True)[:top_k]
         return [
-            RetrievalResult(chunk=chunk_map[k].chunk, score=scores[k])
-            for k in sorted_keys
+            RetrievalResult(chunk=doc[1].chunk, score=doc[0])
+            for doc in sorted_docs
         ]
