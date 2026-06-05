@@ -1,133 +1,72 @@
-# RAG 优化开发日程
+# RAG 优化开发日程（v2 — 6/6 更新）
 
-> **当前日期：2026-06-04（周四）**
-> MVP 后端已完成（8 个 Task，11 单测，30/30 QA），前端未开始。
-> 每日可用时间估计：平日 2-3h，周末 4-6h。
+> **当前**: 七大优化模块已完成，RAGAS 评估上线。策略调整为**微调现有架构优先**，Graph RAG 后置。
 
 ---
 
-## 第一阶段：检索地基重建
+## 已完成（6/5 一天）
 
-### Week 1（6/5 周五 — 6/7 周日）
-
-| 日期 | 模块 | 内容 | 预计耗时 |
-|------|------|------|----------|
-| **6/5 周五** | A. 递归语义分块 | 设计 `RecursiveChunker` 类结构，继承 `BaseChunker`，实现标题层级解析（`#`→`##`→`###` 递归树） | 2-3h |
-| **6/6 周六** | A. 递归语义分块 | 完成分句器（正则 `[。！？\n]`），实现阈值触发精切逻辑；更新 `ChunkMetadata` 加 `heading_stack` 字段 | 4-6h |
-| **6/7 周日** | A. 递归语义分块 | 写 8-10 个单元测试（标题嵌套、长段落切分、overlap 动态计算、空文档边界），跑通 `RecursiveChunker` 全量测试 | 4-6h |
-
-> **里程碑 1**：RecursiveChunker 替换 FixedChunker，测试全绿，54 篇文档重新摄入验证 chunk 质量。
-
----
-
-## 第二阶段：检索精度跃升
-
-### Week 2（6/8 周一 — 6/11 周四）
-
-| 日期 | 模块 | 内容 | 预计耗时 |
-|------|------|------|----------|
-| **6/8 周一** | C. Reranker | 新建 `BaseReranker(ABC)`，实现 `BgeReranker(CrossEncoder)`，模型下载到 `backend/models/` | 2-3h |
-| **6/9 周二** | C. Reranker | 修改 `RAGPipeline.query()`：向量 Top-5 → 向量 Top-20 → Reranker Top-5。写 Reranker 单元测试 | 2-3h |
-| **6/10 周三** | 评估基线 | 用 watsonxDocsQA 跑 Reranker 前后的 Hit Rate + MRR 对比，记录基线数据 | 2-3h |
-| **6/11 周四** | 缓冲/调试 | 修 bug、调 Reranker 参数（temperature、max_length），确保稳定 | 2-3h |
-
-> **里程碑 2**：Reranker 上线，检索精度量化提升。拿到第一组 A/B 对比数据。
+| 模块 | 说明 |
+|------|------|
+| A. 递归语义分块 | FixedChunker → RecursiveChunker |
+| C. Reranker | BGE-reranker-v2-m3 Cross-encoder 精排 |
+| D. Query 改写 | DeepSeek 改写 + 54篇索引辅助 |
+| B. Hybrid Search | BM25 + 向量 + RRF 融合 |
+| H. 摄入API | MD5去重 + 增量 + DELETE + 全量重摄入 |
+| G. 多轮对话 | 会话管理 + 历史注入 |
+| — RAGAS 评估 | 正统框架上线，基线数据采集 |
+| — System Prompt 简化 | 1498→450字，去强制结构 |
 
 ---
 
-## 第三阶段：双路召回
+## Phase 1: 检索精度攻坚（6/6-6/7）
 
-### Week 3（6/12 周五 — 6/16 周二）
+**目标**: Context Precision 0.537 → 0.70，Faithfulness 0.542 → 0.65
 
-| 日期 | 模块 | 内容 | 预计耗时 |
-|------|------|------|----------|
-| **6/12 周五** | B. Hybrid Search | 集成 `rank-bm25`，实现 `HybridRetriever` 类（组合 `ChromaRetriever` + BM25 索引），`BaseRetriever` 接口不变 | 2-3h |
-| **6/13 周六** | B. Hybrid Search | 实现 RRF 融合逻辑（`BM25 Top-20 + 向量 Top-20 → RRF → Top-15`），写单元测试 | 4-6h |
-| **6/14 周日** | B. Hybrid Search | 修改 `RAGPipeline.query()` 接入 Hybrid 检索 + Reranker 精排，完成三合一管线 | 4-6h |
-| **6/15 周一** | 评估对比 | 跑 watsonxDocsQA + RAGAS，对比：纯向量 vs +Reranker vs +Hybrid+Reranker，三组数据 | 2-3h |
-| **6/16 周二** | 缓冲/文档 | 性能优化（BM25 索引重建耗时、RRF 参数 k 调优），更新项目 README | 2-3h |
+| 日期 | 措施 | 预期提升 | 工作量 |
+|------|------|---------|--------|
+| 6/6 | **Reranker 阈值过滤**: 修改 pipeline.query()，Reranker 后 score<0.5 的 chunk 不送 LLM | ContextPrec +0.10 | 30min |
+| 6/6 | **Query 改写增强**: 分析 RAGAS 低分 query 的共性，补全跨领域术语映射表 | ContextPrec +0.05 | 1h |
+| 6/7 | **全量重评**: 改完重跑 gen_answers + RAGAS，验证提升幅度 | — | 30min |
+| 6/7 | **知识库扩展调研**: 识别 54 篇文档的覆盖盲区，规划补充方向 | — | 1h |
 
-> **里程碑 3**：三合一检索管线完成。Hit Rate 目标 ≥ 95%，MRR ≥ 0.8。
-
----
-
-## 第四阶段：Query 侧 + 工程完善
-
-### Week 4（6/17 周三 — 6/21 周日）
-
-| 日期 | 模块 | 内容 | 预计耗时 |
-|------|------|------|----------|
-| **6/17 周三** | D. Query 改写 | 设计 Query 改写 Prompt（含全库二级索引摘要），实现 `QueryRewriter` 类 | 2-3h |
-| **6/18 周四** | D. Query 改写 | 接入检索管线（Rewrite → Search → Rerank → Generate），写测试，评估改写效果 | 2-3h |
-| **6/19 周五** | H. 摄入 API | 完善 `/api/documents/ingest`：增量更新、去重检测、BM25 索引自动重建触发 | 2-3h |
-| **6/20 周六** | H. 摄入 API | 前端文档上传组件（拖拽上传 + 进度条），前后端联调 | 4-6h |
-| **6/21 周日** | 整体评估 | watsonxDocsQA + 人工 20 题 + RAGAS 三轮评估，记录最终数据，写改进报告 | 4-6h |
-
-> **里程碑 4**：第一阶段全部完成。4 项检索改进 + 1 项工程改进全部上线，评估数据闭环。
+> **里程碑**: RAGAS 全指标对比报告（Round 1→2→3）
 
 ---
 
-## 第五阶段：对话体验
+## Phase 2: 检索精度第二轮 + 前端（6/8-6/10）
 
-### Week 5（6/22 周一 — 6/25 周四）
+**目标**: Context Precision → 0.75
 
-| 日期 | 模块 | 内容 | 预计耗时 |
-|------|------|------|----------|
-| **6/22 周一** | G. 多轮对话 | 设计会话管理（session_id、历史消息存储、上下文窗口裁剪） | 2-3h |
-| **6/23 周二** | G. 多轮对话 | 实现 `ConversationManager`，修改 Prompt 模板注入对话历史 | 2-3h |
-| **6/24 周三** | G. 多轮对话 | 前端多轮对话 UI（消息列表持久化、新建对话、历史切换） | 2-3h |
-| **6/25 周四** | 缓冲 | 联调测试，边缘 case 修复 | 2-3h |
+| 日期 | 措施 | 预期提升 |
+|------|------|---------|
+| 6/8 | 知识库扩展：HuggingFace/网上找薄弱领域文档补充 | ContextPrec +0.07 |
+| 6/9 | RAGAS 重评 + Prompt 微调 | — |
+| 6/10 | 前端最小可用版（ChatPanel + 测试用例） | — |
 
-> **里程碑 5**：完整对话体验上线，可演示多轮问答。
-
----
-
-## 第六阶段：炫技——Graph RAG
-
-### Week 6-8（6/26 周五 — 7/12 周日）⭐ 个人主页主推项目
-
-| 日期 | 模块 | 内容 | 预计耗时 |
-|------|------|------|----------|
-| **6/26 周五** | F. Graph RAG | 设计文档：实体定义、关系模型、社区聚簇算法、检索流程 | 2-3h |
-| **6/27-28 周末** | F. Graph RAG | 实现实体抽取管线（LLM preprocess 54 篇文档 → 实体 + 关系列表） | 8-12h |
-| **6/29-7/1** | F. Graph RAG | 实现社区检测（Leiden/Louvain 聚簇），社区摘要生成（LLM 为每簇写 summary） | 6-9h |
-| **7/2-7/3** | F. Graph RAG | 实现 Graph 检索器（local q → 精准实体寻址；global q → 社区摘要匹配 → 下钻 chunk） | 6-8h |
-| **7/4-7/5 周末** | F. Graph RAG | 集成到 Pipeline，跑全量测试，修 bug | 8-12h |
-| **7/6-7/8** | F. Graph RAG | Prompt 调优 + 评估数据（对比 Hybrid 方案的提升幅度） | 6-9h |
-| **7/9-7/10** | 前端收官 | ChatPanel + SourcePopover + 完整 UI（之前未做的前端部分） | 6-8h |
-| **7/11-7/12 周末** | 整体收尾 | 全链路测试、性能优化、README 完善、个人主页文案准备 | 8-12h |
-
-> **里程碑 6**：Graph RAG 完整上线。项目具备"Hybrid+Reranker 实用管线 + Graph RAG 炫技模块"双层架构，可作为个人主页主推项目发布。
+> **里程碑**: RAGAS Context Precision ≥ 0.70
 
 ---
 
-## 总览
+## Phase 3: Graph RAG（远期，日期待定）
+
+**前置条件**: Context Precision 稳定在 ≥0.70 后启动
+
+| 模块 | 内容 |
+|------|------|
+| 实体抽取 | 已有代码，需全量 54 篇抽取 |
+| 社区检测 + 摘要 | Leiden 聚类 + LLM 摘要 |
+| 图谱检索器 | 已实现 GraphRetriever，需集成 Pipeline |
+
+---
+
+## 策略变更说明
 
 ```
-6/4  ● 今日（日程制定，MVP 后端已完成）
-     │
-6/5  ├─ Week 1: 递归语义分块 ──────────────── 里程碑 1
-6/7  │
-6/8  ├─ Week 2: Reranker + 评估基线 ───────── 里程碑 2
-6/11 │
-6/12 ├─ Week 3: Hybrid Search 三合一 ──────── 里程碑 3 🎯 Hit Rate ≥95%
-6/16 │
-6/17 ├─ Week 4: Query改写 + 摄入API + 全评估 ─ 里程碑 4
-6/21 │
-6/22 ├─ Week 5: 多轮对话 ──────────────────── 里程碑 5
-6/25 │
-6/26 ├─ Week 6-8: Graph RAG 炫技 ──────────── 里程碑 6 ⭐
-7/12 │
-     ▼ 项目发布
+旧策略:  所有优化平行推进 → Graph RAG 排最后但是独立大模块
+新策略:  先微调现有架构把 RAGAS 做上去 → Graph RAG 在检索稳定后启动
+
+原因:   RAGAS 评估发现 Context Precision=0.537 是最大短板
+       改 Retriever 参数比上新架构见效快、风险低
+       Graph RAG 是长期炫技，不应该是救急方案
 ```
-
-| 阶段 | 时间 | 核心产出 |
-|------|------|----------|
-| 地基 | 6/5-6/7 (3天) | RecursiveChunker |
-| 精度 | 6/8-6/11 (4天) | Reranker + 评估数据 |
-| 召回 | 6/12-6/16 (5天) | Hybrid+RRF+Reranker 三合一 |
-| 完善 | 6/17-6/21 (5天) | Query改写 + 摄入 + 全评估 |
-| 对话 | 6/22-6/25 (4天) | 多轮对话 |
-| 炫技 | 6/26-7/12 (17天) | Graph RAG + 前端收官 |
-
-**总计：约 5.5 周，7 月 12 日前可完成全部优化并发布。**
