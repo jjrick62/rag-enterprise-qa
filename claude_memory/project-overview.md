@@ -1,33 +1,38 @@
-# RAG 企业制度智能问答
+# RAG 企业知识库智能问答 — 项目概览
 
-## 项目概述
-基于 RAG（检索增强生成）的企业管理制度智能问答系统。用户上传企业文档（员工手册、IT规范、报销制度等），通过自然语言提问，系统从文档中检索相关内容并生成带引用溯源的答案。
+## 状态：优化第二阶段（BM25 bug 已修复，Chunk 信噪比优化待做）
 
 ## 技术栈
-- **后端**: Python + FastAPI + LangChain
-- **前端**: React + TypeScript
-- **向量数据库**: ChromaDB
-- **Embedding**: BAAI/bge-small-zh-v1.5（本地）
-- **LLM**: DeepSeek API（云端）
-- **文档解析**: PyPDF2 + python-docx + markdown
+- 后端: Python FastAPI + OOP（6 个 ABC 抽象基类）
+- Embedding: BAAI/bge-small-zh-v1.5（本地 RTX 4060）
+- Reranker: BAAI/bge-reranker-v2-m3（本地）
+- 向量库: ChromaDB（持久化）
+- 关键词: BM25（rank-bm25 库）
+- 生成: DeepSeek Chat API
+- 评估: RAGAS 0.4.3 正统框架
 
-## 项目结构
-```
-rag-enterprise-qa/
-├── backend/           # Python FastAPI 后端
-├── frontend/          # React 前端
-├── data/
-│   ├── documents/     # 原始文档
-│   └── chroma_db/     # 向量数据库持久化
-└── claude_memory/     # 项目记忆
-```
+## 已完成优化（2026-06-05 ~ 06-06）
 
-## 核心功能
-1. 多文档上传与解析（PDF/DOCX/Markdown）
-2. 智能分块 + 本地 Embedding
-3. 分类检索（按文档类别过滤）
-4. 引用溯源（答案关联到原文段落）
-5. 对话式问答界面
+1. 递归语义分块（RecursiveChunker，标题树递归+句子精切）
+2. Reranker 二阶段重排（Cross-encoder，sigmoid 归一化）
+3. Hybrid Search（BM25 + 向量 + RRF 融合）
+4. Query 改写（DeepSeek，中文→英文术语）
+5. 摄入 API（MD5 去重、增量更新、DELETE、全量重摄入）
+6. 多轮对话（会话管理、历史注入）
+7. System Prompt 简化（1498→450字）
+8. RAGAS 评估上线（Faithfulness=0.566 基线）
 
-## 当前状态
-🟡 设计阶段 — 方案二已确认，正在细化技术方案
+## Bug 修复
+- **BM25 从未构建**（2026-06-06）：HybridRetriever.__init__() 新增 _rebuild_from_chromadb()
+
+## 当前瓶颈
+- Chunk 信噪比太低：含关键信息的句子被埋在大段无关内容里
+- RAGAS Faithfulness=0.566，距企业标准 0.80 差 0.234
+- Answer Relevancy=0.672，差 0.028 达标
+
+## 已砍掉的伪需求
+- 知识库扩展：答案已在 54 篇文档中，不需要更多文档
+- 文档级去重：长文档多 chunk 场景是负优化
+
+## 下一优先
+Chunk 信噪比优化——关键术语独立成 chunk

@@ -1,65 +1,45 @@
-# RAG 系统能力评估报告 (RAGAS 正统框架)
+# RAG 系统能力评估报告 (RAGAS)
 
-> **评估日期**: 2026-06-06
-> **框架**: RAGAS 0.4.3（两步法 Faithfulness + 多维度指标）
-> **LLM Judge**: DeepSeek Chat (temperature=0.0)
-> **测试数据集**: watsonxDocsQA / question_answers / test (20 条)
+> **框架**: RAGAS 0.4.3 | **LLM Judge**: DeepSeek Chat | **测试集**: watsonxDocsQA (20条)
+> **当前基线**: Faithfulness=0.566 / AnswerRelevancy=0.672 / ContextPrecision=0.560
 
 ---
 
-## 一、评估方法
+## 一、四轮优化历史
 
-RAGAS 正统框架三步指标：
-
-| 指标 | 方法 | 说明 |
-|------|------|------|
-| Faithfulness | RAGAS 两步法 | Step1: LLM拆claims → Step2: 逐条核验 |
-| Answer Relevancy | RAGAS (本地BGE embeddings) | 回答与问题语义匹配度 |
-| Context Precision | RAGAS (LLM逐句评分) | 检索文档的相关性占比 |
-
----
-
-## 二、评估结果
-
-| 指标 | RAGAS 值 | 自研一步法 | 差异 | 说明 |
-|------|---------|-----------|------|------|
-| Faithfulness | **0.566** | 0.645 | -0.079 | RAGAS两步法更严格 |
-| Answer Relevancy | **0.672** | 0.680 | -0.008 | |
-| Context Precision | **0.560** | 0.675 | -0.115 | |
-
-### 综合评级
-
-```
-综合评级 (RAGAS): demo 级别
-Faithfulness=0.566 | AnswerRelevancy=0.672 | ContextPrecision=0.560
-```
-
-### 企业标准对照
-
-| 指标 | 当前值 | 企业及格线 | 差距 |
-|------|--------|-----------|------|
-| Faithfulness | 0.566 | ≥0.80 | 0.234 |
-| Answer Relevancy | 0.672 | ≥0.70 | 0.028 |
-| Context Precision | 0.560 | ≥0.80 | 0.240 |
+| 轮次 | 改动 | Faith. | AnsRel. | CtxPrec. |
+|------|------|--------|---------|----------|
+| R1 | 七段 Prompt | 0.575 | 0.714 | 0.487 |
+| R2 | 简化 Prompt | 0.542 | 0.588 | 0.537 |
+| R3 | 文档级去重(已回滚) | 0.556 | 0.560 | 0.500 |
+| R4 | **BM25修复**(关键) | **0.566** | **0.672** | **0.560** |
 
 ---
 
-## 三、跟自研方案对比
+## 二、关键发现
 
-| 维度 | 自研 | RAGAS | 结论 |
-|------|------|-------|------|
-| Faithfulness | 一步整体打分 0.645 | 两步法 0.566 | RAGAS 分得更细，自研可能偏乐观 |
-| Context Precision | 一步整体 0.675 | 逐句评分 0.560 | |
-| Answer Relevancy | LLM 打分 0.680 | embedding+LLM 0.672 | |
+### Bug：BM25 从未被构建
 
----
+`HybridRetriever.__init__()` 没从 ChromaDB 读取已有数据重建 BM25 索引。每次新建 Pipeline（服务重启、gen_answers、trace 脚本）BM25 都是空的。**向量检索单腿跳了全程。**
 
-## 四、改进路线
+修复：新增 `_rebuild_from_chromadb()`，在 `__init__` 时从 ChromaDB 读取 660 个 chunk 重建 BM25。
 
-1. P0: Reranker 分数阈值过滤（低于阈值不送 LLM）
-2. P0: System Prompt 简化（去结构化压力，减少编造空间）
-3. P1: 知识库扩展 + Query 改写术语映射增强
+### 真实瓶颈：Chunk 信噪比
+
+BM25 和向量都能把正确文档排到第 1 名。但 BGE-reranker 对正确 chunk 的 sigmoid 分只有 0.68——因为 chunk 包含 80% 无关内容（Flow/SuperNode）+ 20% 相关信息（CLEM）。信噪比太低。
+
+不是文档缺失。不是 Reranker 坏了。是 Chunk 策略需要优化。
 
 ---
 
-> 评估脚本: `backend/eval_ragas_only.py` | 生成回答: `backend/gen_answers.py`
+## 三、剩余改进项
+
+| 优先级 | 措施 | 说明 |
+|--------|------|------|
+| P0 | Chunk 信噪比优化 | 关键术语独立成 chunk，不被无关内容稀释 |
+| P2 | Graph RAG | 远期炫技 |
+
+---
+
+> 评估工具: `backend/eval_ragas_only.py` | 生成回答: `backend/gen_answers.py`
+> 管道诊断: `backend/trace_pipeline.py`
