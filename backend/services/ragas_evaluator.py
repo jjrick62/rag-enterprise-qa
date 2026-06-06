@@ -69,13 +69,21 @@ class RagasEvaluator(BaseEvaluator):
         from datasets import Dataset
         hf_dataset = Dataset.from_list(trimmed)
 
-        # LLM-as-Judge: DeepSeek via RAGAS llm_factory
+        # LLM-as-Judge: MiMo v2.5 Pro via RAGAS llm_factory
         from openai import OpenAI
         from ragas.llms import llm_factory
 
         client = OpenAI(api_key=self._api_key, base_url=self._base_url)
+        # 开启 thinking——MiMo 推理模型需要思考才能做好结构化判断（拆claims、核验）
+        _orig_create = client.chat.completions.create
+        def _patched_create(*args, **kwargs):
+            kwargs.setdefault('extra_body', {})
+            kwargs['extra_body']['enable_thinking'] = True
+            return _orig_create(*args, **kwargs)
+        client.chat.completions.create = _patched_create
+
         # max_tokens 设大——RAGAS 拆 claims 时输出很长，默认 3072 不够
-        llm = llm_factory("deepseek-chat", client=client, temperature=0.0, max_tokens=8192)
+        llm = llm_factory("mimo-v2.5-pro", client=client, temperature=0.0, max_tokens=8192)
 
         # Embeddings: 用本地 BGE 模型，不调 DeepSeek（它没有 /embeddings 端点）
         from services.embedder import BGEBaaIEmbedder

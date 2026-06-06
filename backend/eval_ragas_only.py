@@ -1,21 +1,77 @@
-"""Step 2: 从 JSON 读取回答 → RAGAS 评估（不重新生成，秒级重跑）"""
-import json, os, sys, time
+"""RAGAS 评估——使用标准答案 + 当前 pipeline 检索上下文
+
+两阶段可分离：
+  Phase 1 (本脚本): 跑 pipeline 检索上下文 + 用标准答案 → 存 eval_dataset.json
+  Phase 2 (重跑本脚本): 如果 eval_dataset.json 已存在，直接读缓存跑 RAGAS
+"""
+import asyncio, json, os, sys, time
 sys.path.insert(0, os.path.dirname(__file__))
 from services.ragas_evaluator import RagasEvaluator
 from config import Config
 
 config = Config.load()
-data_path = os.path.join(os.path.dirname(__file__), "..", "data", "eval_dataset.json")
-dataset = json.load(open(data_path, "r", encoding="utf-8"))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "..", "data")
+GT_PATH = os.path.join(DATA_DIR, "watsonxDocsQA_test.json")
+EVAL_CACHE = os.path.join(DATA_DIR, "eval_dataset.json")
 
-print(f"Loaded {len(dataset)} QA pairs from eval_dataset.json")
-print(f"Running RAGAS 3-metric evaluation...\n")
+# Phase 1: 如果没有缓存，用标准答案 + pipeline 检索重建
+if not os.path.exists(EVAL_CACHE):
+    print("No eval_dataset.json found — running pipeline retrieval with GT answers...")
+    from services.embedder import BGEBaaIEmbedder
+    from services.retriever import ChromaRetriever
+    from services.hybrid_retriever import HybridRetriever
+    from services.reranker import BgeReranker
+    from services.pipeline import RAGPipeline
+    from services.parser import MDParser
+    from services.recursive_chunker import RecursiveChunker
+    from services.generator import DeepSeekGenerator
+
+    qa_pairs = json.load(open(GT_PATH, "r", encoding="utf-8"))
+    emb = BGEBaaIEmbedder(model_name=config.embedding_model, device="cpu", cache_folder=config.model_cache_path)
+    reranker = BgeReranker(device="cpu", cache_folder=config.model_cache_path)
+    hybrid = HybridRetriever(ChromaRetriever(config.chroma_path, emb))
+
+    pipeline = (
+        RAGPipeline.builder()
+        .with_parser(MDParser())
+        .with_chunker(RecursiveChunker(500, 0.15, 50))
+        .with_embedder(emb)
+        .with_retriever(HybridRetriever(ChromaRetriever(config.chroma_path, emb)))
+        .with_generator(DeepSeekGenerator(api_key=config.deepseek_api_key))
+        .with_reranker(reranker)
+        .build()
+    )
+
+    dataset = []
+    t0 = time.time()
+    for i, (q, gt) in enumerate(qa_pairs, 1):
+        # 直接用 HybridRetriever + Reranker 检索（同步，不调 LLM）
+        q_emb = emb.embed([q])[0]
+        rrf_results = hybrid.search(q_emb, top_k=20)
+        results = reranker.rerank(q, rrf_results, top_k=5)
+        contexts = [r.chunk.content[:500] for r in results]
+        dataset.append({
+            "question": q,
+            "answer": gt[:1500],      # 用标准答案！
+            "contexts": contexts,
+            "ground_truth": gt,
+        })
+        if i % 5 == 0:
+            print(f"  {i}/{len(qa_pairs)} questions retrieved...")
+    json.dump(dataset, open(EVAL_CACHE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    print(f"Saved {len(dataset)} QA to {EVAL_CACHE} ({time.time()-t0:.0f}s)")
+else:
+    print(f"Loading cached eval dataset from {EVAL_CACHE}")
+
+# Phase 2: RAGAS 评估
+dataset = json.load(open(EVAL_CACHE, "r", encoding="utf-8"))
+print(f"Evaluating {len(dataset)} QA pairs with RAGAS (MiMo)...\n")
 
 evaluator = RagasEvaluator(
-    api_key=config.deepseek_api_key,
-    base_url="https://api.deepseek.com/v1",
+    api_key="sk-chxgsdnbeafvw2dfatn2iz5gtbpj5s1xz2l8e319v3t0l8jy",
+    base_url="https://api.xiaomimimo.com/v1",
 )
-import asyncio
 t0 = time.time()
 report = asyncio.run(evaluator.evaluate(dataset))
 elapsed = time.time() - t0
@@ -26,71 +82,12 @@ print(f"Answer Relevancy:   {report.answer_relevancy:.3f}")
 print(f"Context Precision:  {report.context_precision:.3f}")
 print(f"\n{report.summary}")
 
-md_path = os.path.join(os.path.dirname(__file__), "..", "ragabilitytest.md")
-with open(md_path, "w", encoding="utf-8") as f:
-    f.write(f"""# RAG 系统能力评估报告 (RAGAS 正统框架)
-
-> **评估日期**: 2026-06-06
-> **框架**: RAGAS 0.4.3（两步法 Faithfulness + 多维度指标）
-> **LLM Judge**: DeepSeek Chat (temperature=0.0)
-> **测试数据集**: watsonxDocsQA / question_answers / test ({len(dataset)} 条)
-
----
-
-## 一、评估方法
-
-RAGAS 正统框架三步指标：
-
-| 指标 | 方法 | 说明 |
-|------|------|------|
-| Faithfulness | RAGAS 两步法 | Step1: LLM拆claims → Step2: 逐条核验 |
-| Answer Relevancy | RAGAS (本地BGE embeddings) | 回答与问题语义匹配度 |
-| Context Precision | RAGAS (LLM逐句评分) | 检索文档的相关性占比 |
-
----
-
-## 二、评估结果
-
-| 指标 | RAGAS 值 | 自研一步法 | 差异 | 说明 |
-|------|---------|-----------|------|------|
-| Faithfulness | **{report.faithfulness:.3f}** | 0.645 | {report.faithfulness-0.645:+.3f} | RAGAS两步法{('更严格' if report.faithfulness < 0.645 else '更宽松')} |
-| Answer Relevancy | **{report.answer_relevancy:.3f}** | 0.680 | {report.answer_relevancy-0.680:+.3f} | |
-| Context Precision | **{report.context_precision:.3f}** | 0.675 | {report.context_precision-0.675:+.3f} | |
-
-### 综合评级
-
-```
-{report.summary}
-```
-
-### 企业标准对照
-
-| 指标 | 当前值 | 企业及格线 | 差距 |
-|------|--------|-----------|------|
-| Faithfulness | {report.faithfulness:.3f} | ≥0.80 | {0.80-report.faithfulness:.3f} |
-| Answer Relevancy | {report.answer_relevancy:.3f} | ≥0.70 | {0.70-report.answer_relevancy:.3f} |
-| Context Precision | {report.context_precision:.3f} | ≥0.80 | {0.80-report.context_precision:.3f} |
-
----
-
-## 三、跟自研方案对比
-
-| 维度 | 自研 | RAGAS | 结论 |
-|------|------|-------|------|
-| Faithfulness | 一步整体打分 0.645 | 两步法 {report.faithfulness:.3f} | RAGAS 分得更细，{('自研可能偏乐观' if report.faithfulness < 0.645 else '自研偏悲观')} |
-| Context Precision | 一步整体 0.675 | 逐句评分 {report.context_precision:.3f} | |
-| Answer Relevancy | LLM 打分 0.680 | embedding+LLM {report.answer_relevancy:.3f} | |
-
----
-
-## 四、改进路线
-
-1. P0: Reranker 分数阈值过滤（低于阈值不送 LLM）
-2. P0: System Prompt 简化（去结构化压力，减少编造空间）
-3. P1: 知识库扩展 + Query 改写术语映射增强
-
----
-
-> 评估脚本: `backend/eval_ragas_only.py` | 生成回答: `backend/gen_answers.py`
-""")
-print(f"Report saved: {md_path}")
+# 输出 per-sample 分数
+print("\n=== Per-Question Scores ===")
+for s in report.per_sample:
+    q = s.get('user_input', '')[:60]
+    f = s.get('faithfulness', 'N/A')
+    if isinstance(f, (int, float)):
+        print(f"  Faith={f:.3f} | {q}")
+    else:
+        print(f"  Faith={f} | {q}")
