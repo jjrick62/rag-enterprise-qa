@@ -1,8 +1,84 @@
+from dataclasses import dataclass, field
+from html.parser import HTMLParser
 from pathlib import Path
+from typing import Callable
 
 
 SHOWCASE_PATH = Path(__file__).resolve().parents[2] / "frontend" / "showcase.html"
 GITHUB_URL = "https://github.com/jjrick62/rag-enterprise-qa"
+VOID_ELEMENTS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+}
+
+
+@dataclass
+class Element:
+    tag: str
+    attrs: dict[str, str | None]
+    parent: "Element | None" = None
+    children: list["Element"] = field(default_factory=list)
+    text_parts: list[str] = field(default_factory=list)
+
+    @property
+    def text(self) -> str:
+        parts = [*self.text_parts, *(child.text for child in self.children)]
+        return " ".join(" ".join(parts).split())
+
+    def has_class(self, class_name: str) -> bool:
+        return class_name in (self.attrs.get("class") or "").split()
+
+    def descendants(self, tag: str | None = None) -> list["Element"]:
+        matches: list[Element] = []
+        for child in self.children:
+            if tag is None or child.tag == tag:
+                matches.append(child)
+            matches.extend(child.descendants(tag))
+        return matches
+
+
+class ShowcaseParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.root = Element("document", {})
+        self.stack = [self.root]
+
+    def handle_starttag(
+        self, tag: str, attrs: list[tuple[str, str | None]]
+    ) -> None:
+        element = Element(tag, dict(attrs), parent=self.stack[-1])
+        self.stack[-1].children.append(element)
+        if tag not in VOID_ELEMENTS:
+            self.stack.append(element)
+
+    def handle_startendtag(
+        self, tag: str, attrs: list[tuple[str, str | None]]
+    ) -> None:
+        self.handle_starttag(tag, attrs)
+        if tag not in VOID_ELEMENTS:
+            self.stack.pop()
+
+    def handle_endtag(self, tag: str) -> None:
+        for index in range(len(self.stack) - 1, 0, -1):
+            if self.stack[index].tag == tag:
+                del self.stack[index:]
+                return
+
+    def handle_data(self, data: str) -> None:
+        if data.strip():
+            self.stack[-1].text_parts.append(data)
 
 
 def read_showcase() -> str:
@@ -10,12 +86,132 @@ def read_showcase() -> str:
     return SHOWCASE_PATH.read_text(encoding="utf-8")
 
 
-def test_showcase_links_to_github_safely() -> None:
-    html = read_showcase()
+def parse_showcase() -> Element:
+    parser = ShowcaseParser()
+    parser.feed(read_showcase())
+    return parser.root
 
-    assert GITHUB_URL in html
-    assert 'target="_blank"' in html
-    assert 'rel="noopener noreferrer"' in html
+
+def find_one(
+    root: Element,
+    tag: str,
+    predicate: Callable[[Element], bool] = lambda _element: True,
+) -> Element:
+    matches = [element for element in root.descendants(tag) if predicate(element)]
+    assert len(matches) == 1, f"expected one matching <{tag}>, found {len(matches)}"
+    return matches[0]
+
+
+def test_showcase_links_to_github_safely() -> None:
+    document = parse_showcase()
+    github_links = [
+        link
+        for link in document.descendants("a")
+        if link.attrs.get("href") == GITHUB_URL
+    ]
+
+    assert len(github_links) >= 2
+    for link in github_links:
+        assert link.attrs.get("target") == "_blank"
+        assert {"noopener", "noreferrer"} <= set(
+            (link.attrs.get("rel") or "").split()
+        )
+
+    hero = find_one(document, "header", lambda node: node.attrs.get("id") == "top")
+    footer = find_one(document, "footer")
+    assert any(link.text == "VIEW ON GITHUB" for link in hero.descendants("a"))
+    assert any(link.text == "VIEW ON GITHUB" for link in footer.descendants("a"))
+
+
+def test_showcase_hero_contract() -> None:
+    document = parse_showcase()
+    hero = find_one(document, "header", lambda node: node.attrs.get("id") == "top")
+
+    assert find_one(hero, "h1").text == "RAG Enterprise QA"
+    assert "端到端企业文档问答" in hero.text
+    assert any(link.text == "VIEW ON GITHUB" for link in hero.descendants("a"))
+    assert any(
+        link.attrs.get("href") == "#benchmark" and link.text == "向下浏览"
+        for link in hero.descendants("a")
+    )
+    for detail in (
+        "30 道 watsonxDocsQA",
+        "DeepSeek V4 Pro",
+        "MiMo v2.5 Pro",
+        "完整上下文",
+    ):
+        assert detail in hero.text
+
+
+def test_showcase_contains_complete_architecture_pipeline() -> None:
+    document = parse_showcase()
+    architecture = find_one(
+        document, "section", lambda node: node.attrs.get("id") == "architecture"
+    )
+    stage_titles = [
+        title.text
+        for stage in architecture.descendants("div")
+        if stage.has_class("stage")
+        for title in stage.descendants("strong")
+    ]
+
+    assert stage_titles == [
+        "Document Parse",
+        "Recursive Chunk",
+        "Vector Top-20 + BM25 Top-20",
+        "RRF",
+        "BGE Reranker",
+        "Evidence Gate",
+        "Top-3~5 Full Chunks",
+        "LLM Streaming Answer",
+        "Full-context RAGAS",
+        "Traceable Output",
+    ]
+    for detail in ("absolute 0.50", "per-doc max 4", "relative 0.75"):
+        assert detail in architecture.text
+
+
+def test_showcase_contains_failure_dossiers() -> None:
+    document = parse_showcase()
+    cases = find_one(
+        document, "section", lambda node: node.attrs.get("id") == "cases"
+    )
+
+    assert "200 字摘要" in cases.text
+    for case_id in ("Q00", "Q02"):
+        case = find_one(
+            cases, "article", lambda node, expected=case_id: node.attrs.get("data-case") == expected
+        )
+        assert [term.text for term in case.descendants("dt")] == [
+            "现象",
+            "证据",
+            "根因",
+            "修复",
+        ]
+
+
+def test_showcase_contains_four_capability_quadrants() -> None:
+    document = parse_showcase()
+    capabilities = find_one(
+        document, "section", lambda node: node.attrs.get("id") == "capabilities"
+    )
+    quadrant_titles = [
+        heading.text
+        for quadrant in capabilities.descendants("article")
+        if quadrant.has_class("quadrant")
+        for heading in quadrant.descendants("h3")
+    ]
+
+    assert quadrant_titles == ["算法", "后端", "评测", "产品"]
+
+
+def test_showcase_footer_displays_repository_url() -> None:
+    document = parse_showcase()
+    footer = find_one(document, "footer")
+    url_link = find_one(footer, "a", lambda node: node.has_class("footer-url"))
+
+    assert url_link.attrs.get("href") == GITHUB_URL
+    assert url_link.text == GITHUB_URL
 
 
 def test_showcase_contains_current_f2_metrics() -> None:
