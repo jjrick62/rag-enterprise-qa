@@ -559,24 +559,14 @@
       font-size: .84rem;
     }
 
-    .case-wide {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: .7fr 1.3fr;
-      gap: 60px;
-      align-items: start;
+    .case-primary {
       color: #f6f5ee;
       background: var(--ink);
     }
 
-    .case-wide .diagnosis {
-      margin-top: 0;
-      grid-template-columns: 74px 1fr;
-    }
-
-    .case-wide .diagnosis dt { border-color: rgba(255,255,255,.55); }
-    .case-wide .diagnosis dd { color: #a7afa9; border-color: var(--line-dark); }
-    .case-wide::before { color: var(--ink); background: var(--acid); }
+    .case-primary .diagnosis dt { border-color: rgba(255,255,255,.55); }
+    .case-primary .diagnosis dd { color: #a7afa9; border-color: var(--line-dark); }
+    .case-primary::before { color: var(--ink); background: var(--acid); }
 
     .capabilities { background: var(--paper); }
 
@@ -702,8 +692,7 @@
     @media (max-width: 980px) {
       .hero-body,
       .section-head,
-      .threshold-layout,
-      .case-wide { grid-template-columns: 1fr; }
+      .threshold-layout { grid-template-columns: 1fr; }
 
       .hero-body { align-items: center; }
       .hero-stats { grid-template-columns: repeat(3, 1fr); }
@@ -711,7 +700,6 @@
       .hero-stat span { display: block; margin-top: 10px; text-align: left; }
       .pipeline { grid-template-columns: repeat(2, 1fr); }
       .pipeline::before { display: none; }
-      .case-wide { gap: 20px; }
     }
 
     @media (max-width: 680px) {
@@ -742,7 +730,6 @@
       .footer-meta { display: block; }
       .pipeline-caption span,
       .footer-meta span { display: block; margin-top: 8px; }
-      .case-wide { grid-column: auto; }
       .case { padding-top: 54px; }
       .diagnosis { grid-template-columns: 64px 1fr; }
       .quadrant { min-height: 245px; }
@@ -951,12 +938,10 @@
         </div>
 
         <div class="case-grid">
-          <article class="case case-wide reveal" data-case="INCIDENT 01">
-            <div>
-              <p class="case-tag">EVALUATION PIPELINE</p>
-              <h3>RAGAS 截断漏洞</h3>
-              <p>生成模型使用完整 chunk 作答，但 Judge 曾只收到为 UI 展示准备的 200 字摘要。</p>
-            </div>
+          <article class="case case-primary reveal" data-case="INCIDENT 01" data-case-study="ragas-truncation">
+            <p class="case-tag">EVALUATION PIPELINE</p>
+            <h3>RAGAS 截断漏洞</h3>
+            <p>生成模型使用完整 chunk 作答，但 Judge 曾只收到为 UI 展示准备的 200 字摘要。</p>
             <dl class="diagnosis">
               <dt>现象</dt>
               <dd>L4-L6 的 Faithfulness 异常下降，与人工阅读答案质量的判断明显冲突。</dd>
@@ -969,33 +954,18 @@
             </dl>
           </article>
 
-          <article class="case reveal" data-case="Q00">
-            <p class="case-tag">JUDGE FALSE NEGATIVE</p>
-            <h3>正确答案，被 Judge 误判。</h3>
+          <article class="case reveal" data-case="Q00 / Q02" data-case-study="q00-q02-attribution">
+            <p class="case-tag">JUDGE FALSE NEGATIVE / PROMPT OVER-CONSTRAINT</p>
+            <h3>Q00 / Q02：相似低分，不同根因。</h3>
             <dl class="diagnosis">
               <dt>现象</dt>
-              <dd>Q00 得分异常，但答案与参考事实一致。</dd>
+              <dd>Q00 答案与参考事实一致却得分异常；Q02 返回“信息不足”，看起来像召回缺失。</dd>
               <dt>证据</dt>
-              <dd>逐句核对答案、原始证据与参考答案，信息链完整且无事实偏移。</dd>
+              <dd>Q00 的答案、原始证据与参考答案信息链完整；Q02 的完整上下文与重排结果均包含所需调参表。</dd>
               <dt>根因</dt>
-              <dd>Judge 对表述差异过敏，属于评测误判，而不是检索或生成失败。</dd>
+              <dd>Q00 是 Judge 对表述差异过敏造成的误判；Q02 是 Prompt 对“完全明确”的要求过严，抑制了模型从结构化表格中组织答案。</dd>
               <dt>修复</dt>
-              <dd>将单题异常拆出复核，避免为迎合一次误判错误调整生成链路。</dd>
-            </dl>
-          </article>
-
-          <article class="case reveal" data-case="Q02">
-            <p class="case-tag">PROMPT OVER-CONSTRAINT</p>
-            <h3>证据已经召回，模型仍然拒答。</h3>
-            <dl class="diagnosis">
-              <dt>现象</dt>
-              <dd>Q02 返回“信息不足”，看起来像召回缺失。</dd>
-              <dt>证据</dt>
-              <dd>完整上下文中存在所需调参表，检索与重排结果均包含关键数据。</dd>
-              <dt>根因</dt>
-              <dd>Prompt 对“完全明确”的要求过严，抑制了模型从结构化表格中组织答案。</dd>
-              <dt>修复</dt>
-              <dd>保留证据约束，同时允许基于明确表格字段作答；把拒答行为与召回质量分开验证。</dd>
+              <dd>单题异常拆出复核，避免迎合误判调整生成链路；同时允许基于明确表格字段作答，并把拒答行为与召回质量分开验证。</dd>
             </dl>
           </article>
         </div>

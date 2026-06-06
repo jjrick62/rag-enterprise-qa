@@ -176,18 +176,33 @@ def test_showcase_contains_failure_dossiers() -> None:
     cases = find_one(
         document, "section", lambda node: node.attrs.get("id") == "cases"
     )
+    case_studies = [
+        article
+        for article in cases.descendants("article")
+        if article.attrs.get("data-case-study")
+    ]
 
-    assert "200 字摘要" in cases.text
-    for case_id in ("Q00", "Q02"):
-        case = find_one(
-            cases, "article", lambda node, expected=case_id: node.attrs.get("data-case") == expected
-        )
-        assert [term.text for term in case.descendants("dt")] == [
-            "现象",
-            "证据",
-            "根因",
-            "修复",
-        ]
+    assert [case.attrs["data-case-study"] for case in case_studies] == [
+        "ragas-truncation",
+        "q00-q02-attribution",
+    ]
+
+    truncation_case, attribution_case = case_studies
+    assert "RAGAS 截断漏洞" in truncation_case.text
+    assert "200 字摘要" in truncation_case.text
+    assert [term.text for term in truncation_case.descendants("dt")] == [
+        "现象",
+        "证据",
+        "根因",
+        "修复",
+    ]
+
+    assert "Q00" in attribution_case.text
+    assert "Q02" in attribution_case.text
+    assert "JUDGE FALSE NEGATIVE" in attribution_case.text
+    assert "PROMPT OVER-CONSTRAINT" in attribution_case.text
+    assert "Judge 对表述差异过敏" in attribution_case.text
+    assert "Prompt 对“完全明确”的要求过严" in attribution_case.text
 
 
 def test_showcase_contains_four_capability_quadrants() -> None:
