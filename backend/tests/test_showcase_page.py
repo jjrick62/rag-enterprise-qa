@@ -263,6 +263,20 @@ def test_showcase_supports_mobile_and_reduced_motion() -> None:
     assert "prefers-reduced-motion" in html
 
 
+def test_showcase_scroll_regions_are_contained_by_their_layout() -> None:
+    html = read_showcase()
+
+    assert re.search(
+        r"\.scroll-region\s*\{"
+        r"(?=[^}]*\bmin-width:\s*0)"
+        r"(?=[^}]*\bwidth:\s*100%)"
+        r"(?=[^}]*\bmax-width:\s*100%)"
+        r"(?=[^}]*\boverflow-x:\s*auto)",
+        html,
+        re.DOTALL,
+    )
+
+
 def test_showcase_embeds_canonical_data_as_json() -> None:
     document = parse_showcase()
     data_script = find_one(
