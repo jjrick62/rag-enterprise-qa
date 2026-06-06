@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="RAG Enterprise QA 端到端企业文档问答工程展示与基准实验记录。">
   <title>RAG Enterprise QA | Engineering Showcase</title>
+  <script>document.documentElement.classList.add("js");</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Noto+Sans+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
@@ -401,6 +402,47 @@
     .scroll-region:focus-visible {
       outline: 3px solid var(--acid);
       outline-offset: 4px;
+    }
+
+    #benchmark .scroll-region:focus-visible {
+      outline: 3px solid var(--ink);
+    }
+
+    .iteration-data-region {
+      display: block;
+      margin-top: 24px;
+    }
+
+    .js .iteration-data-region {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .iteration-data-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: .75rem;
+    }
+
+    .iteration-data-table th,
+    .iteration-data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+    }
+
+    .iteration-data-table th:first-child,
+    .iteration-data-table td:first-child {
+      text-align: left;
     }
 
     .visually-hidden {
@@ -842,8 +884,11 @@
           <div class="chart-scroll scroll-region" tabindex="0" aria-label="RAGAS 迭代图，可横向滚动查看全部点位">
             <svg id="ragas-chart" role="img" aria-labelledby="chart-title chart-desc"></svg>
           </div>
-          <div class="visually-hidden">
-            <table id="iteration-data-summary">
+          <noscript>
+            <p>JavaScript 未启用，以下完整数据表用于呈现迭代趋势。</p>
+          </noscript>
+          <div class="iteration-data-region scroll-region" tabindex="0" aria-label="RAGAS 完整迭代数据表，可横向滚动查看全部列">
+            <table class="iteration-data-table" id="iteration-data-summary">
               <caption>RAGAS 全部迭代点位数据</caption>
               <thead>
                 <tr>
@@ -1427,7 +1472,7 @@
       document.querySelectorAll(".reveal").forEach(node => observer.observe(node));
     }
 
-    document.documentElement.classList.add("js");
+    document.querySelector(".iteration-data-region").removeAttribute("tabindex");
     enableReveals();
     try {
       renderChart();

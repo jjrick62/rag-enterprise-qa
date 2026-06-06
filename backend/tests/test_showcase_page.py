@@ -346,7 +346,9 @@ def test_showcase_exposes_all_iteration_metrics_accessibly() -> None:
     assert not summary.has_class("visually-hidden")
     assert summary.parent is not None
     assert summary.parent.tag != "table"
-    assert summary.parent.has_class("visually-hidden")
+    assert summary.parent.has_class("scroll-region")
+    assert summary.parent.has_class("iteration-data-region")
+    assert not summary.parent.has_class("visually-hidden")
     assert find_one(summary, "caption").text
 
     rows = summary.descendants("tbody")[0].descendants("tr")
@@ -370,5 +372,36 @@ def test_showcase_exposes_all_iteration_metrics_accessibly() -> None:
         assert region.attrs.get("aria-label")
 
     html = read_showcase()
+    assert re.search(
+        r"\.iteration-data-region\s*\{[^}]*display:\s*block",
+        html,
+        re.DOTALL,
+    )
+    assert re.search(
+        r"\.js\s+\.iteration-data-region\s*\{"
+        r"(?=[^}]*position:\s*absolute)"
+        r"(?=[^}]*width:\s*1px)"
+        r"(?=[^}]*height:\s*1px)"
+        r"(?=[^}]*overflow:\s*hidden)",
+        html,
+        re.DOTALL,
+    )
+    assert "<noscript>" in html
     assert "stroke-dasharray" in html
     assert all(shape in html for shape in ('shape: "circle"', 'shape: "square"', 'shape: "diamond"'))
+
+
+def test_showcase_uses_dark_focus_for_benchmark_scroll_regions() -> None:
+    html = read_showcase()
+
+    match = re.search(
+        r"#benchmark\s+\.scroll-region:focus-visible\s*\{([^}]*)\}",
+        html,
+        re.DOTALL,
+    )
+
+    assert match is not None
+    assert re.search(
+        r"outline:\s*3px\s+solid\s+(?:var\(--ink\)|#16221d)",
+        match.group(1),
+    )
