@@ -2,6 +2,10 @@
 
 基于 FastAPI、ChromaDB、BM25、BGE Reranker 和 LLM 的企业文档 RAG 系统。54 篇 IBM watsonx 技术文档入库，自然语言提问，流式回答，带引用溯源。
 
+> ### 项目展示页
+>
+> [打开项目展示](frontend/showcase.html)：查看真实 RAGAS 迭代、系统架构与故障案例。该入口使用仓库相对链接，可继续在 GitHub 中自然浏览项目内容。
+
 ## 🔥 RAGAS 评估结果
 
 > 30 道 watsonxDocsQA，DeepSeek V4 Pro 真实生成，MiMo v2.5 Pro 裁判，完整上下文零截断
