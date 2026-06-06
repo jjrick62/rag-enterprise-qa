@@ -33,11 +33,17 @@ class EvalReport:
 
 
 def prepare_evaluation_dataset(dataset: List[Dict]) -> List[Dict]:
-    """Copy evaluation samples without changing the evidence seen by the generator."""
+    """Copy evaluation samples without changing the evidence seen by the generator.
+
+    RAGAS 0.4 expects 'reference' column; our datasets use 'ground_truth'.
+    """
     prepared = []
     for sample in dataset:
         copied = dict(sample)
         copied["contexts"] = list(sample.get("contexts", []))
+        # Rename ground_truth → reference for RAGAS compatibility
+        if "ground_truth" in copied and "reference" not in copied:
+            copied["reference"] = copied["ground_truth"]
         prepared.append(copied)
     return prepared
 

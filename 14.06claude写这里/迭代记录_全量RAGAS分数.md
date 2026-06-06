@@ -20,6 +20,7 @@
 | **F1** | **DeepSeek V4 Pro** | **MiMo 开 thinking** | **0.901** | **0.791** | **0.834** | **正式** | 相对阈值 0.70 |
 | **F2** | **DeepSeek V4 Pro** | **MiMo 开 thinking** | **0.918** | **0.826** | **0.844** | **当前基线** | 相对阈值 0.75 |
 | **F3** | **DeepSeek V4 Pro** | **MiMo 开 thinking** | **0.937** | **0.780** | **0.799** | **正式** | 相对阈值 0.80 |
+| **v2** | **DeepSeek V4 Pro** | **MiMo 订阅版** | **0.931** | **0.857** | **0.857** | **当前基线** | IBM 标题 fallback，1714 chunks，0.75 |
 
 ## 为什么旧分数失效
 
@@ -65,3 +66,20 @@ data/evaluations/archive/
 ## 当前测试
 
 `48 passed`
+
+## 2026-06-07 Chunker 变更（IBM 纯文本标题 fallback）
+
+**问题**：IBM watsonx 54 篇文档无一使用 Markdown `#` 标题，全部为纯文本格式。旧 chunker 的 `_parse_heading_tree` 正则 `^(#{1,6})\s+(.+)$` 匹配不到任何内容 → 所有 chunk 的 `heading_stack=[]` → 前端引用卡片全显示 `(no heading)`。
+
+**修复**：`RecursiveChunker` 新增 `_detect_ibm_headings()` fallback 方法：无 Markdown 标题时自动从文档首行提取标题、根据段落间距和句子特征识别小节标题。排除列表项、表格标题、伪表数据行等误判。
+
+**影响**：
+- Chunk 总数从 ~660 增至 876（小节拆分更细）
+- 表块更独立（表周围不再跟前后段混一块）
+- Chunk 边界全局变化 → 必须重摄入 + 重评估
+
+**下一轮评估**（2026-06-07 已完成 ✓）：
+- 重摄入 54 篇文档 → 1714 chunks
+- 生成 1 组答案（0.75）
+- MiMo 订阅版 Judge 评估 → Faith 0.931 / AnsRel 0.857 / CtxPrec 0.857
+- **三项全部超越 F0-F3 基线**

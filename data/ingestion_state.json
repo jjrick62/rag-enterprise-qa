@@ -1,0 +1,328 @@
+{
+  "files": {
+    "Box_connection.md": {
+      "hash": "3816eac2f2f195ebd82d2a54f3a7205d",
+      "chunks": 21,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:08.036129"
+    },
+    "Building_reusable_prompts.md": {
+      "hash": "f9e10b81b928ecf7f3b2a34bb35c6b9c",
+      "chunks": 28,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:08.276950"
+    },
+    "Creating_advanced_custom_constraints_with_Python_in_the_Decision_Optimization_Mo.md": {
+      "hash": "897827e45b3d555275d274a9781e8a48",
+      "chunks": 11,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:08.380932"
+    },
+    "Creating_constraints_and_custom_decisions_with_the_Decision_Optimization_Modelin.md": {
+      "hash": "e7415ae1315b30153655e15ff1794f7b",
+      "chunks": 14,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:08.494509"
+    },
+    "Decision_Optimization.md": {
+      "hash": "3c4e65beb3b32cee577aca3591627435",
+      "chunks": 3,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:08.558307"
+    },
+    "Decision_Optimization_Java_models.md": {
+      "hash": "6e1940c2f0d6ab39ee068b771d88955f",
+      "chunks": 3,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:08.617412"
+    },
+    "Decision_Optimization_Modeling_Assistant_models.md": {
+      "hash": "052d719793799585ac10191aa1204f6a",
+      "chunks": 4,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:08.677941"
+    },
+    "Decision_Optimization_Modeling_Assistant_scheduling_tutorial.md": {
+      "hash": "181b77178cdb3483702f248383f08e14",
+      "chunks": 2,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:08.726083"
+    },
+    "Decision_Optimization_Python_client_examples.md": {
+      "hash": "1c314c7b34cfa0d552ed2b1910c671c9",
+      "chunks": 4,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:08.783179"
+    },
+    "Decision_Optimization_REST_API_deployment.md": {
+      "hash": "8e1b560952c88731d578ac9bae04a110",
+      "chunks": 55,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:09.371322"
+    },
+    "Decision_Optimization_Visualization_view.md": {
+      "hash": "e86d9172f58406b64b9edbe8c9c18646",
+      "chunks": 14,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:09.509821"
+    },
+    "Decision_Optimization_deployment_steps.md": {
+      "hash": "87f422167f536b5917d237ab9e7ed57b",
+      "chunks": 2,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:09.554350"
+    },
+    "Decision_Optimization_experiment_Python_and_CPLEX_runtime_versions_and_Python_ex.md": {
+      "hash": "e3d796996e029eef573eb928d2a0310b",
+      "chunks": 14,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:09.684869"
+    },
+    "Decision_Optimization_experiment_UI_views_and_scenarios.md": {
+      "hash": "18c882d600f43cff7f854d82262e7a89",
+      "chunks": 13,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:09.822900"
+    },
+    "Decision_Optimization_experiments.md": {
+      "hash": "d86cf37735e6c385dd39a97c06c1f95c",
+      "chunks": 7,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:09.923241"
+    },
+    "Decision_Optimization_input_and_output_data.md": {
+      "hash": "a015b002c86e2fe7d6e5c1ac23b3de65",
+      "chunks": 2,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:09.977367"
+    },
+    "Decision_Optimization_notebook_generating_multiple_scenarios.md": {
+      "hash": "9d1561f226b1791a2c0f15d372717f72",
+      "chunks": 3,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.045029"
+    },
+    "Decision_Optimization_notebook_multiple_scenarios.md": {
+      "hash": "38d10b876a39a847b0a43899be9e63bb",
+      "chunks": 4,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.111281"
+    },
+    "Decision_Optimization_notebook_tutorial.md": {
+      "hash": "a8698a99466a136614865fa5942e3937",
+      "chunks": 5,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.185285"
+    },
+    "Decision_Optimization_notebook_tutorial_create_new_scenario.md": {
+      "hash": "0bf9f4058644d116e74dcd49bc0c16be",
+      "chunks": 2,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.230367"
+    },
+    "Decision_Optimization_notebooks.md": {
+      "hash": "9f03b3ebe3ecbfc6f7425803b2e592b7",
+      "chunks": 6,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.301966"
+    },
+    "Decision_Optimization_run_parameters.md": {
+      "hash": "7dfd947dd23a3dd285ef8faf7aec2db9",
+      "chunks": 2,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.352128"
+    },
+    "Decision_Optimization_sample_models_and_notebooks.md": {
+      "hash": "b5c9c444e9a2266b42f0ed6ff66222c2",
+      "chunks": 2,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.410748"
+    },
+    "Decision_Optimization_solve_parameters.md": {
+      "hash": "5e31f03f3a3a966283f11a8b13e0f743",
+      "chunks": 9,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.521088"
+    },
+    "Delegating_CPLEX_solve_to_Watson_Machine_Learning.md": {
+      "hash": "4ce7a1ba026d3f8c7113ee822a8a0616",
+      "chunks": 2,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.568709"
+    },
+    "Deleting_a_deployment.md": {
+      "hash": "8851c751003b10a40048d7cd94b85d8e",
+      "chunks": 8,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.669418"
+    },
+    "Deploying_Java_models.md": {
+      "hash": "d2768125d35b6824ef825d6c8936f12c",
+      "chunks": 5,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.744554"
+    },
+    "Deploying_a_Decision_Optimization_model_by_using_the_user_interface.md": {
+      "hash": "cf0e89a7ae2ab9998f6bb5ba3b45e893",
+      "chunks": 10,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.847865"
+    },
+    "Deploying_a_prompt_template.md": {
+      "hash": "f566db65c1a4593d434a7a5f25cfb3e7",
+      "chunks": 12,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:10.986288"
+    },
+    "Federated_Learning_architecture.md": {
+      "hash": "f27e8b4ff26186611b653348d4b81c28",
+      "chunks": 6,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:11.063640"
+    },
+    "Flow_and_SuperNode_parameters.md": {
+      "hash": "0539e6771f8870e38042b625373b4d3f",
+      "chunks": 3,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:11.120050"
+    },
+    "Foundation_model_parameters__decoding_and_stopping_criteria.md": {
+      "hash": "06df6c4d14848e75883bab0e81f580f0",
+      "chunks": 21,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:11.288902"
+    },
+    "Generating_accurate_output.md": {
+      "hash": "e3fc4c716cb7d29fbf7fd2a0e8bd10f1",
+      "chunks": 23,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:11.477230"
+    },
+    "Geospatial_data_analysis.md": {
+      "hash": "796e42e912305713c011fced4c278d0d",
+      "chunks": 8,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:11.578595"
+    },
+    "Glossary.md": {
+      "hash": "edc8db9d93f4315c7c9211e78b0a31f0",
+      "chunks": 245,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:12.508187"
+    },
+    "IBM_Cloud_account_security.md": {
+      "hash": "e690761df84696956efb466b47d56984",
+      "chunks": 20,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:12.680401"
+    },
+    "IBM_Db2_for_z_OS_connection.md": {
+      "hash": "eae31a72d59375ae4755c1f6ac735ca6",
+      "chunks": 25,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:12.890102"
+    },
+    "IBM_Federated_Learning.md": {
+      "hash": "54683a68465d5b631ac556a817a3a3cc",
+      "chunks": 12,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:13.041128"
+    },
+    "Map_charts.md": {
+      "hash": "97f64fe576f19ec3170968028ada423f",
+      "chunks": 1,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:13.096372"
+    },
+    "Microsoft_SQL_Server_connection.md": {
+      "hash": "cc33a10233954703237ccc36d81d4902",
+      "chunks": 13,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:13.224159"
+    },
+    "OPL_models.md": {
+      "hash": "74d0d915fbb819e04695ceb74dc01009",
+      "chunks": 4,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:13.308388"
+    },
+    "Parameters_for_tuning_foundation_models.md": {
+      "hash": "7dfd9e84f704cee24363321b5be5962a",
+      "chunks": 14,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:13.453071"
+    },
+    "Prompt_Lab.md": {
+      "hash": "778d737dd12f6ceb02c4b0c148b59ad4",
+      "chunks": 23,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:13.683722"
+    },
+    "Python_DOcplex_models.md": {
+      "hash": "ef751201e4404fdca4061ec2c1a6a69d",
+      "chunks": 3,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:13.751736"
+    },
+    "Searching_for_assets_and_artifacts_across_the_platform.md": {
+      "hash": "52e7bfd26417967280adabbe7e6804b5",
+      "chunks": 16,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:13.912569"
+    },
+    "Security_and_privacy_for_foundation_models.md": {
+      "hash": "391c23feacc09321e80db69c3e84eb42",
+      "chunks": 8,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:14.028360"
+    },
+    "Selecting_a_Decision_domain_in_the_Modeling_Assistant.md": {
+      "hash": "a49a656db2e6f4180cb2e1b9386437e7",
+      "chunks": 2,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:14.104620"
+    },
+    "Sim_Eval_node_(SPSS_Modeler).md": {
+      "hash": "e2eac562a0cf348f494e359e1c81aad8",
+      "chunks": 3,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:14.177640"
+    },
+    "Supported_data_sources_in_Decision_Optimization.md": {
+      "hash": "6ef1a3868d14de97434eb642fb789665",
+      "chunks": 2,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:14.240990"
+    },
+    "Supported_foundation_models_available_with_watsonx.ai.md": {
+      "hash": "aa6621d8871fc9bbaaf59f242438ee42",
+      "chunks": 119,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:15.190603"
+    },
+    "Tokens_and_tokenization.md": {
+      "hash": "4db09b5a5da286036ea26718dda18535",
+      "chunks": 8,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:15.303559"
+    },
+    "Watson_Natural_Language_Processing_task_catalog.md": {
+      "hash": "ccdd49e33bbfdf47cddb3f99d203bf8c",
+      "chunks": 4,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:15.402815"
+    },
+    "Ways_to_use_Decision_Optimization.md": {
+      "hash": "7f50aeb2feb3d4d4f383ad7fda62a756",
+      "chunks": 1,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:15.459253"
+    },
+    "bayesnetnode_properties.md": {
+      "hash": "9d7ef815f920b5f9abe86377cf10688a",
+      "chunks": 6,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-07T01:11:15.572684"
+    }
+  }
+}

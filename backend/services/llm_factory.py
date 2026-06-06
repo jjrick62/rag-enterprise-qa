@@ -3,24 +3,43 @@
 消除 gen_answers.py / eval_ragas_only.py / generator / ragas_evaluator 中的硬编码。
 新增 Provider 只需加一个工厂方法。
 """
+import httpx
 from openai import OpenAI, AsyncOpenAI
+
+
 class LLMProvider:
     """LLM 供应商配置——API key、base_url、模型名、额外参数"""
 
     def __init__(self, name: str, api_key: str, base_url: str,
-                 model: str, extra_body: dict = None):
+                 model: str, extra_body: dict = None, use_api_key_header: bool = False):
         self.name = name
         self.api_key = api_key
         self.base_url = base_url
         self.model = model
         self.extra_body = extra_body or {}
+        self._use_api_key_header = use_api_key_header
 
     def create_client(self) -> OpenAI:
+        if self._use_api_key_header:
+            return OpenAI(
+                base_url=self.base_url,
+                api_key=self.api_key,
+                http_client=httpx.Client(
+                    headers={"api-key": self.api_key},
+                ),
+            )
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
 
     def create_async_client(self) -> AsyncOpenAI:
+        if self._use_api_key_header:
+            return AsyncOpenAI(
+                base_url=self.base_url,
+                api_key=self.api_key,
+                http_client=httpx.AsyncClient(
+                    headers={"api-key": self.api_key},
+                ),
+            )
         return AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
-
 
 MIMO = None
 MIMO_THINK = None
@@ -39,12 +58,15 @@ def _get_mimo(thinking: bool):
     if cached is None:
         from config import Config
         config = Config.load()
+        # 订阅套餐版：api-key header，无 extra_body（不传 enable_thinking/reasoning_effort）
+        is_subscription = "token-plan" in config.mimo_base_url
         cached = LLMProvider(
             name="MiMo-Think" if thinking else "MiMo",
             api_key=_require_key("MIMO_API_KEY", config.mimo_api_key),
             base_url=config.mimo_base_url,
             model=config.mimo_model,
-            extra_body={"enable_thinking": thinking},
+            extra_body={},
+            use_api_key_header=is_subscription,
         )
         if thinking:
             MIMO_THINK = cached

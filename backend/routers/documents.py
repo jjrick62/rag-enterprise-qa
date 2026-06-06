@@ -1,10 +1,11 @@
-"""文档管理路由——摄入/列表/删除/状态"""
+"""文档管理路由——摄入/列表/删除/状态/下载"""
 import os
 import json
 import glob
 import hashlib
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -147,6 +148,35 @@ async def ingestion_status():
             default="",
         ),
     }
+
+
+@router.get("/download/{file_name}")
+async def download_document(file_name: str):
+    """下载原始文档——返回 data/documents/ 下的 .md 文件
+
+    安全措施：校验文件名不含路径遍历字符，且文件确实存在于文档目录中。
+    """
+    # 防路径遍历：只取文件名部分，拒绝 .. / \ 等
+    safe_name = os.path.basename(file_name)
+    if safe_name != file_name or not safe_name:
+        raise HTTPException(status_code=400, detail="无效的文件名")
+
+    doc_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "documents")
+    file_path = os.path.normpath(os.path.join(doc_dir, safe_name))
+
+    # 确保解析后的路径仍在 documents 目录下
+    if not file_path.startswith(os.path.normpath(doc_dir)):
+        raise HTTPException(status_code=403, detail="路径越权")
+
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail=f"文档不存在: {safe_name}")
+
+    return FileResponse(
+        file_path,
+        media_type="text/markdown; charset=utf-8",
+        filename=safe_name,
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+    )
 
 
 @router.delete("/{file_name}")

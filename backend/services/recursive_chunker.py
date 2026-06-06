@@ -80,7 +80,11 @@ class RecursiveChunker(BaseChunker):
         matches = list(heading_pattern.finditer(text))
 
         if not matches:
-            # 全文无标题 → 整篇作为一个节
+            # 全文无 Markdown 标题 → 尝试 IBM 文档格式（纯文本标题）
+            ibm_sections = self._detect_ibm_headings(text)
+            if ibm_sections:
+                return ibm_sections
+            # 毫无标题线索 → 整篇作为一个节
             return [(text, [])]
 
         sections: List[Tuple[str, List[str]]] = []
@@ -112,6 +116,105 @@ class RecursiveChunker(BaseChunker):
 
         return sections
 
+    # ── IBM 纯文本文档标题检测（无 # Markdown 标题时的 fallback）──
+
+    # IBM watsonx 文档典型格式：
+    #   第一行：﻿ 文档标题（可能带 BOM ﻿ 和前导空格）
+    #   小节：短行，前后有空行隔开，可能缩进，可能以 : 结尾
+    #   定义列表：Term\n:   Definition（Term 不是标题，后面紧跟 : 行）
+    _IBM_HEADING_CANDIDATE = re.compile(
+        r'^(?:\s{0,4})(?![-*\d]+\s|```|http|:)(.{1,80})$'
+    )
+    _IBM_DEF_LIST_NEXT = re.compile(r'^\s*:\s{2,}')
+
+    def _detect_ibm_headings(self, text: str) -> List[Tuple[str, List[str]]]:
+        """检测 IBM 纯文本格式的标题结构
+
+        规则（顺序）：
+          1. 第一非空行 → 文档标题（去除 BOM 和前导空格）
+          2. 后续的短行（≤80 字），前后有空行 → 视为小节标题
+          3. 排除：列表项（- * 1.）、代码块、URL、IBM 定义列表的 Term 行
+
+        Returns:
+            与 _parse_heading_tree 同格式：[(section_text, heading_stack), ...]
+        """
+        lines = text.split('\n')
+        if not lines:
+            return []
+
+        # Step 1: 提取文档标题
+        title = ""
+        title_line_idx = -1
+        for i, line in enumerate(lines):
+            stripped = line.strip().lstrip('﻿')
+            if stripped:
+                title = stripped[:80]
+                title_line_idx = i
+                break
+
+        if not title:
+            return []
+
+        # Step 2: 扫描后续行，找小节标题候选
+        # 候选条件：短行、非列表/代码/链接、前面是空行（或标题行）、
+        #           后面不是 IBM 定义列表的 : 行
+        section_boundaries = []  # [(line_idx, heading_text), ...]
+
+        for i in range(title_line_idx + 1, len(lines)):
+            stripped = lines[i].strip()
+            if not stripped:
+                continue
+            if len(stripped) > 80:
+                continue
+            # 排除列表/代码/链接/URL/表格标题/表格数据行
+            if re.match(r'^[-*]\s|^\d+[\.\)]|^```|^http|^\[|^\(', stripped):
+                continue
+            if self._TABLE_TITLE_PATTERN.match(stripped):
+                continue
+            # 排除伪表行（被连续空格拆出 ≥3 个字段 → 是数据行，不是标题）
+            row_fields = [f for f in self._TABLE_ROW_PATTERN.split(stripped) if f]
+            if len(row_fields) >= 3:
+                continue
+            # 排除明显的句子：以句号结尾 → 正文（除非有强标题信号）
+            words = stripped.split()
+            if stripped.endswith('.'):
+                # 有缩进或冒号 → 可能是特殊格式标题，放行
+                if not (line.startswith(' ') or ':' in stripped):
+                    continue
+            # 排除常见句子开头（≥4 词 → 完整句子）
+            if re.match(r'^(The|A|An|This|These|It|They|You|We|To|In|For|With|If|When|After|Before)\s', stripped) and len(words) >= 4:
+                continue
+            # 前一行是空行（或就是标题行）
+            prev_is_blank = i == 0 or not lines[i-1].strip()
+            if not prev_is_blank:
+                continue
+            # 后一行不是 IBM 定义列表的 :  定义行
+            if i + 1 < len(lines):
+                next_line = lines[i+1]
+                if self._IBM_DEF_LIST_NEXT.match(next_line):
+                    continue
+            # 后一行不是冒号开头（宽松匹配）
+            if i + 1 < len(lines) and lines[i+1].strip().startswith(':'):
+                continue
+
+            # 通过所有检查 → 小节标题
+            section_boundaries.append((i, stripped))
+
+        # Step 3: 按边界切分文本
+        if not section_boundaries:
+            # 无小节标题 → 整篇为一个节，heading_stack = [文档标题]
+            return [(text, [title])]
+
+        result = []
+        for j, (start_idx, heading) in enumerate(section_boundaries):
+            # 从标题行开始（含），到下一个标题行之前
+            end_idx = section_boundaries[j+1][0] if j + 1 < len(section_boundaries) else len(lines)
+            section_text = '\n'.join(lines[start_idx:end_idx]).strip()
+            if section_text:
+                result.append((section_text, [title, heading]))
+
+        return result if result else [(text, [title])]
+
     # ── 递归切分 ──
 
     def _chunk_section(
@@ -126,6 +229,25 @@ class RecursiveChunker(BaseChunker):
           - 文本 > chunk_size 且无子标题 → 按句子精切
         """
         if len(text) <= self.chunk_size:
+            # 即使小段也查表——避免 IBM 标题检测把表单独切走后跳过表处理
+            regions = self._detect_table_regions(text)
+            if regions:
+                chunks: List['Chunk'] = []
+                pos = 0
+                for region in regions:
+                    if region['start_char'] > pos:
+                        pre = text[pos:region['start_char']].strip()
+                        if pre:
+                            chunks.append(self._make_chunk(pre, heading_stack))
+                    chunks.extend(self._chunk_table(
+                        region, heading_stack, source_doc, category,
+                    ))
+                    pos = region['end_char']
+                if pos < len(text):
+                    post = text[pos:].strip()
+                    if post:
+                        chunks.append(self._make_chunk(post, heading_stack))
+                return chunks
             return [self._make_chunk(text, heading_stack)]
 
         # 尝试按子标题继续切

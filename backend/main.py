@@ -4,10 +4,13 @@
   1. 加载 Config（.env）
   2. Builder 模式组装五层组件
   3. Pipeline 注入 app.state，全局共享
+  4. 挂载前端静态文件
 """
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from config import Config
 from services.parser import MDParser
 from services.recursive_chunker import RecursiveChunker
@@ -91,3 +94,9 @@ app.include_router(documents_router)
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+# 挂载前端静态文件 — 放在最后确保 API 路由优先匹配
+frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
+if os.path.isdir(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")

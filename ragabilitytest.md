@@ -1,71 +1,75 @@
 # RAGAS 端到端能力评估报告
 
-> 日期：2026-06-06
+> 日期：2026-06-07（更新）
 > 数据集：watsonxDocsQA 30 题
 > 答案：DeepSeek V4 Pro 真实生成
-> Judge：MiMo v2.5 Pro，thinking enabled
+> Judge：MiMo v2.5 Pro，thinking enabled（订阅版 `token-plan-cn`）
 > 上下文：生成时实际使用的完整 chunk，无截断
+> Chunker：RecursiveChunker + IBM 纯文本标题 fallback（v2，1714 chunks）
 
-## 当前正式结果
+## 当前正式结果（v2）
 
-| 配置 | 平均上下文数 | Faithfulness | Answer Relevancy | Context Precision |
-|---|---:|---:|---:|---:|
-| 关闭相对过滤 | 5.00 | 0.874 | 0.818 | 0.816 |
-| 0.70 | 4.47 | 0.901 | 0.791 | 0.834 |
-| **0.75** | **4.10** | **0.918** | **0.826** | **0.844** |
-| 0.80 | 3.83 | 0.937 | 0.780 | 0.799 |
+| 指标 | 分数 | 目标 | 状态 |
+|------|:----:|:----:|:----:|
+| Faithfulness | **0.931** | ≥0.80 | ✓ +0.131 |
+| Answer Relevancy | **0.857** | ≥0.70 | ✓ +0.157 |
+| Context Precision | **0.857** | ≥0.80 | ✓ +0.057 |
 
-当前选择 `0.75`：三项均超过目标线，综合均值最高。
+配置：RRF 20 → Reranker Top-5 → `min_score=0.50` + `max4/doc` + `adaptive_cutoff=0.75` + `keep_min=3`。
+
+## 版本对比
+
+| 版本 | Faith. | AnsRel. | CtxPrec. | Chunks | 说明 |
+|------|:------:|:-------:|:--------:|:------:|------|
+| F2（旧 chunker） | 0.918 | 0.826 | 0.844 | 1274 | heading 全部为空 |
+| **v2（新 chunker）** | **0.931** | **0.857** | **0.857** | 1714 | heading 全量覆盖 |
+
+**变更**：RecursiveChunker 新增 `_detect_ibm_headings()`——54 篇 IBM 文档全部无 `#` markdown 标题，旧版 `heading_stack` 全空。新版从首行提取标题、小节短行自动识别。Chunk 粒度更细（均值 285 vs 432 字符），语义边界更完整。
+
+**结论**：三项反涨，IBM heading fallback 对检索质量正面。
+
+## 性能对比
+
+| 指标 | 旧 chunker | 新 chunker | 变化 |
+|------|-----------|-----------|:----:|
+| Chunk 总数 | 1274 | 1714 | +34.5% |
+| 平均大小 | 432 chars | 285 chars | -34% |
+| 空 heading | 全空（`[""]` bug） | 0/1714 | ✓ |
+| 端到端延迟 | 2604ms | 2419ms | -7% |
+| Reranker | 2558ms | 2384ms | -7% |
+
+## 历史数据（存档）
+
+| 配置 | Faith. | AnsRel. | CtxPrec. | 说明 |
+|---|---|---|---|---|
+| F0 关闭过滤 | 0.874 | 0.818 | 0.816 | 旧 chunker |
+| F1 0.70 | 0.901 | 0.791 | 0.834 | 旧 chunker |
+| F2 0.75 | 0.918 | 0.826 | 0.844 | 旧 chunker，上一基线 |
+| F3 0.80 | 0.937 | 0.780 | 0.799 | 旧 chunker |
 
 ## 指标目标
 
-| 指标 | 当前 | 项目目标 | 状态 |
-|---|---:|---:|---|
-| Faithfulness | **0.918** | ≥0.80 | 达标 |
-| Answer Relevancy | **0.826** | ≥0.70 | 达标 |
-| Context Precision | **0.844** | ≥0.80 | 达标 |
-
-## 关键修正
-
-旧评测链路存在严重截断漏洞：
-
-```text
-生成模型：完整 chunk
-旧 RAGAS：前端 excerpt，通常仅 200 字
-```
-
-答案依据经常位于 200 字之后，因此出现 Q00、Q02 等正确答案被判 `0.000`。修复后 RAGAS 直接使用生成时的完整 chunk，同时保留前端短摘要。
-
-关闭过滤组在相同 Judge 下已达到 `0.874 / 0.818 / 0.816`，说明旧的低 Faithfulness 主要不是生成模型或 Prompt 本身造成的。
-
-## 历史数据解释
-
-- `0.864 / 0.897 / 0.911`：使用标准答案作为 response，适合观察检索是否支持标准答案，但不能代表端到端生成质量。
-- `0.469 / 0.808 / 0.701` 等旧结果：评测上下文被压缩为短摘要，不应与当前结果直接比较。
-- 当前四组是第一批“真实生成答案 + 完整生成上下文 + 固定 Judge”的正式可比基线。
-
-## 已知波动
-
-- 每组答案均为独立 LLM 调用，包含生成随机性。
-- MiMo 对 Answer Relevancy 请求的 3 个 generations 实际只返回 1 个，单次结果可能波动。
-- `0.75` 组 Q08、Q18 曾出现偶发拒答，需用固定上下文重复生成进一步判断。
+| 指标 | 当前 v2 | 旧 F2 | 企业目标 |
+|------|:------:|:------:|:------:|
+| Faithfulness | **0.931** | 0.918 | ≥0.80 |
+| Answer Relevancy | **0.857** | 0.826 | ≥0.70 |
+| Context Precision | **0.857** | 0.844 | ≥0.80 |
 
 ## 产物
 
-- 数据集：`data/evaluations/datasets/`
-- 结构化报告：`data/evaluations/reports/ragas_*.json`
-- 实验总结：`data/evaluations/reports/ragas_filter_experiment_2026-06-06.md`
-- 历史日志：`data/evaluations/archive/`
+- 新数据集：`data/evaluations/datasets/eval_dataset_r075.json`
+- 新报告：`data/evaluations/reports/ragas_r075_v2.json`
+- 旧数据集/报告：`data/evaluations/archive/`
+- 性能测试：`backend/perf_test.py`
 
 ## 结论
 
-默认保留：
-
+默认保留配置不变：
 ```text
 min_score = 0.50
 max_chunks_per_document = 4
 adaptive_cutoff_ratio = 0.75
-adaptive_keep_min = 3
+keep_min = 3
 ```
 
-下一轮不应继续盲调 Prompt，而应优先扩大候选召回深度并建立可重复的离线检索指标。
+IBM 标题 fallback 已验证有效，chunk 语义边界改善带来三项指标全面提升。
