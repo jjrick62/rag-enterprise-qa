@@ -29,3 +29,6 @@ backend/models/
 # IDE
 .vscode/
 .idea/
+
+# Local visual brainstorming sessions
+.superpowers/
