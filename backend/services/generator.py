@@ -1,7 +1,8 @@
-"""生成器——DeepSeek API 流式调用
+"""生成器——LLM 流式调用（OpenAI 兼容协议）
 
-使用 OpenAI 兼容 SDK（openai 包），因为 DeepSeek API 与 OpenAI 接口完全兼容。
-流式生成 → AsyncIterator[GenerateEvent]，每个 event 是 token/sources/done 之一。
+OOP 设计：
+  LLMGenerator(BaseGenerator) — 接受 LLMProvider，工厂模式解耦
+  DeepSeekGenerator(BaseGenerator) — 旧接口，向后兼容
 """
 from typing import List, AsyncIterator
 from openai import AsyncOpenAI
@@ -10,26 +11,17 @@ from services.prompts import SYSTEM_PROMPT, build_user_message
 from schemas.chat import RetrievalResult, GenerateEvent, Source
 
 
-class DeepSeekGenerator(BaseGenerator):
-    """DeepSeek API 流式生成器
+class LLMGenerator(BaseGenerator):
+    """LLM 流式生成器——接受 LLMProvider，解耦供应商配置
 
-    流程：
-      1. 拼接 System Prompt + 检索上下文 + 用户问题
-      2. 调用 DeepSeek Chat API（stream=True）
-      3. 逐 delta 产出 token event
-      4. 流结束后产出 sources event + done event
+    用法:
+        gen = LLMGenerator(provider=get_provider("generate"))
     """
 
-    def __init__(
-        self,
-        api_key: str,
-        base_url: str = "https://api.deepseek.com",
-        model: str = "deepseek-chat",
-        temperature: float = 0.3,
-    ):
-        # AsyncOpenAI——异步客户端，支持 stream
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        self._model = model
+    def __init__(self, provider, temperature: float = 0.2):  # 低随机性，减少编造但不僵化
+        self._client = provider.create_async_client()
+        self._model = provider.model
+        self._extra_body = provider.extra_body
         self._temperature = temperature
 
     async def generate(
@@ -47,15 +39,22 @@ class DeepSeekGenerator(BaseGenerator):
                 {"role": "user", "content": user_message},
             ],
             stream=True,
+            extra_body=self._extra_body or None,
         )
 
-        # 逐 token 产出
         async for chunk in stream:
+            if not chunk.choices:
+                continue
             delta = chunk.choices[0].delta
-            if delta.content:
+            if delta and delta.content:
                 yield GenerateEvent(type="token", content=delta.content)
 
-        # 流结束后一次性发送引用来源
+        # 评测必须使用生成答案时实际看到的完整上下文。该内部事件不会由 SSE 路由发给前端。
+        yield GenerateEvent(
+            type="contexts",
+            contexts=[result.chunk.content for result in contexts],
+        )
+
         sources = [
             Source(
                 document_name=result.chunk.metadata.source_doc,
@@ -66,6 +65,24 @@ class DeepSeekGenerator(BaseGenerator):
             for result in contexts
         ]
         yield GenerateEvent(type="sources", sources=sources)
-
-        # 结束信号
         yield GenerateEvent(type="done")
+
+
+class DeepSeekGenerator(LLMGenerator):
+    """旧接口——向后兼容，内部委托给 LLMGenerator"""
+
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str = "https://api.deepseek.com",
+        model: str = "deepseek-chat",
+        temperature: float = 0.3,
+    ):
+        from services.llm_factory import LLMProvider
+        provider = LLMProvider(
+            name="DeepSeek",
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+        )
+        super().__init__(provider, temperature=temperature)

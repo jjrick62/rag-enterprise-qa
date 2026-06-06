@@ -154,5 +154,49 @@ def test_reranker_default_diversity_limit_keeps_four_chunks_per_document(
         "a2",
         "a3",
         "a4",
+    ]
+
+
+def test_reranker_can_disable_adaptive_noise_filter(monkeypatch):
+    reranker = _build_reranker(
+        monkeypatch,
+        {
+            "a1": 0.95,
+            "a2": 0.90,
+            "a3": 0.85,
+            "a4": 0.80,
+            "a5": 0.75,
+            "b1": 0.70,
+        },
+        adaptive_cutoff_ratio=None,
+    )
+    candidates = [
+        _result("a1", "a.md", 0),
+        _result("a2", "a.md", 1),
+        _result("a3", "a.md", 2),
+        _result("a4", "a.md", 3),
+        _result("a5", "a.md", 4),
+        _result("b1", "b.md", 0),
+    ]
+
+    results = reranker.rerank("query", candidates, top_k=5)
+
+    assert [result.chunk.content for result in results] == [
+        "a1",
+        "a2",
+        "a3",
+        "a4",
         "b1",
     ]
+
+
+@pytest.mark.parametrize("ratio", [-0.1, 0.0, 1.1])
+def test_reranker_rejects_invalid_adaptive_cutoff_ratio(monkeypatch, ratio):
+    monkeypatch.setattr(
+        reranker_module,
+        "CrossEncoder",
+        lambda *args, **kwargs: _FakeCrossEncoder({}),
+    )
+
+    with pytest.raises(ValueError):
+        reranker_module.BgeReranker(adaptive_cutoff_ratio=ratio)

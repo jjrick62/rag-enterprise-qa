@@ -57,8 +57,8 @@ async def main():
         full = ""; contexts = []
         async for event in pipeline.query(question):
             if event.type == "token": full += event.content
-            elif event.type == "sources":
-                contexts = [s.excerpt for s in (event.sources or [])]
+            elif event.type == "contexts":
+                contexts = event.contexts or []
         dataset.append({
             "question": question,
             "answer": full,
@@ -92,7 +92,15 @@ async def main():
 
     # ── Save ──
     md = generate_report_md(report, dataset)
-    report_path = os.path.join(os.path.dirname(__file__), "..", "ragabilitytest.md")
+    report_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "data",
+        "evaluations",
+        "archive",
+        "legacy_run_ragas_eval.md",
+    )
+    os.makedirs(os.path.dirname(report_path), exist_ok=True)
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(md)
     print(f"\nReport saved: {report_path}")

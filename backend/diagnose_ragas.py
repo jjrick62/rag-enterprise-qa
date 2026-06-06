@@ -4,11 +4,15 @@ sys.path.insert(0, os.path.dirname(__file__))
 from datasets import Dataset
 from ragas import evaluate
 from ragas.metrics import faithfulness, context_precision
-from openai import OpenAI
+from services.llm_factory import get_provider
 from ragas.llms import llm_factory
 
-data = json.load(open('../data/eval_dataset.json', 'r', encoding='utf-8'))
-c = OpenAI(api_key='sk-ed5b2d43637d45648c325b52a2c24835', base_url='https://api.deepseek.com/v1')
+data = json.load(open(
+    '../data/evaluations/datasets/eval_dataset_r075.json',
+    'r',
+    encoding='utf-8',
+))
+c = get_provider("judge").create_client()
 llm = llm_factory('deepseek-chat', client=c, temperature=0.0)
 faithfulness.llm = llm
 context_precision.llm = llm

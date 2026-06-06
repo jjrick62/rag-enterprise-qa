@@ -13,6 +13,9 @@ _config_instance: "Config | None" = None
 class Config:
     deepseek_api_key: str
     deepseek_base_url: str
+    mimo_api_key: str
+    mimo_base_url: str
+    mimo_model: str
     embedding_model: str
     chroma_path: str
     english_embedding_model: str
@@ -27,6 +30,9 @@ class Config:
         _config_instance = Config(
             deepseek_api_key=os.getenv("DEEPSEEK_API_KEY", ""),
             deepseek_base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            mimo_api_key=os.getenv("MIMO_API_KEY", ""),
+            mimo_base_url=os.getenv("MIMO_BASE_URL", "https://api.xiaomimimo.com/v1"),
+            mimo_model=os.getenv("MIMO_MODEL", "mimo-v2.5-pro"),
             embedding_model=os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5"),
             chroma_path=os.getenv("CHROMA_PATH", "../data/chroma_db"),
             english_embedding_model=os.getenv(

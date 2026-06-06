@@ -43,9 +43,10 @@ class Source:
 
 @dataclass(frozen=True)
 class GenerateEvent:
-    """生成器产出的三种事件之一"""
-    type: Literal["token", "sources", "done"]
+    """生成器事件；contexts 仅供内部评测使用，不发送给前端"""
+    type: Literal["token", "contexts", "sources", "done"]
     content: Optional[str] = None            # type=token 时
+    contexts: Optional[list[str]] = None     # type=contexts 时，生成实际使用的完整 chunk
     sources: Optional[list[Source]] = None   # type=sources 时
 
 

@@ -49,6 +49,9 @@ async def _sse_generator(
         if event.type == "token":
             full_answer += event.content
             yield f"event: token\ndata: {event.content}\n\n"
+        elif event.type == "contexts":
+            # 内部评测数据，不向浏览器发送完整检索文本。
+            continue
         elif event.type == "sources":
             sources_json = json.dumps(
                 [{"documentName": s.document_name,

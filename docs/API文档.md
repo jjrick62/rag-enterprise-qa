@@ -1,145 +1,143 @@
 # API 文档
 
-> 当前版本：v0.1（MVP）
 > Base URL：`http://localhost:8000`
+> 当前实现：FastAPI + SSE
 
----
+## 端点
 
-## 端点一览
-
-| 方法 | 路径 | 说明 | 状态 |
-|------|------|------|------|
-| GET | `/api/health` | 健康检查 | ✅ |
-| POST | `/api/chat/send` | SSE 流式问答 | ✅ |
-| POST | `/api/documents/ingest` | 文档摄入 | ✅ |
-| GET | `/api/documents/list` | 文档列表 | ✅ |
-
----
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/health` | 健康检查 |
+| POST | `/api/chat/send` | SSE 流式问答 |
+| DELETE | `/api/chat/session/{session_id}` | 清除会话 |
+| POST | `/api/documents/ingest` | 摄入或更新文档 |
+| GET | `/api/documents/list` | 文档及摄入状态 |
+| GET | `/api/documents/status` | 摄入统计 |
+| DELETE | `/api/documents/{file_name}` | 删除文档索引 |
+| POST | `/api/documents/reingest-all` | 安全清空并重建索引 |
 
 ## GET /api/health
 
-健康检查，用于确认服务是否正常运行。
-
-**响应 200：**
 ```json
 {"status": "ok"}
 ```
 
----
-
 ## POST /api/chat/send
 
-发送问题，SSE 流式返回回答。
+请求：
 
-**请求体：**
 ```json
 {
-  "question": "How do I deploy a Decision Optimization model?",
-  "category": null
+  "question": "What tuning parameters are available?",
+  "category": null,
+  "session_id": "default"
 }
 ```
+
 | 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| question | string | 是 | 用户问题 |
-| category | string \| null | 否 | 限定检索的文档类别，null 为全库检索 |
+|---|---|---|---|
+| `question` | string | 是 | 用户问题 |
+| `category` | string/null | 否 | 文档分类过滤 |
+| `session_id` | string | 否 | 默认 `default`；其他值启用进程内多轮历史 |
 
-**响应：** `text/event-stream`
+响应类型：`text/event-stream`
 
-```
+```text
 event: token
-data: 根据
-
-event: token
-data: 现有文档
+data: The available parameters...
 
 event: sources
-data: {"sources":[{"documentName":"xxx.md","heading":"...","excerpt":"...","score":0.94}]}
+data: [{"documentName":"...","heading":"...","excerpt":"...","score":0.94}]
 
 event: done
-data: 
+data:
 ```
 
-| 事件类型 | data 内容 | 说明 |
-|----------|----------|------|
-| `token` | 纯文本字符串 | 回答的单个 token，前端逐字拼接渲染 |
-| `sources` | JSON 数组（Source 对象） | 所有引用来源，流结束后一次性发送 |
-| `done` | 空 | 流结束信号 |
+`contexts` 是内部评测事件，不会发送给浏览器。
 
-**Source 对象结构：**
+## DELETE /api/chat/session/{session_id}
+
 ```json
-{
-  "documentName": "Supported_foundation_models_available_with_watsonx.ai.md",
-  "heading": "Supported foundation models",
-  "excerpt": "The following models are available in watsonx.ai...",
-  "score": 0.9412
-}
+{"session_id": "demo", "status": "cleared"}
 ```
-
-**cURL 示例：**
-```bash
-curl -N -X POST http://localhost:8000/api/chat/send \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What foundation models are available?"}'
-```
-
----
 
 ## POST /api/documents/ingest
 
-摄入单篇文档。文档会被解析→分块→Embedding→入库。
-
-**请求体：**
 ```json
 {
-  "file_path": "../data/documents/Supported_foundation_models.md",
-  "category": "IBM_Docs"
+  "file_path": "../data/documents/Box_connection.md",
+  "category": "IBM_Docs",
+  "force": false
 }
 ```
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| file_path | string | 是 | 文档文件的相对或绝对路径 |
-| category | string | 否 | 文档分类标签，默认 "General" |
 
-**响应 200：**
+响应：
+
 ```json
 {
-  "file_name": "Supported_foundation_models.md",
+  "file_name": "Box_connection.md",
   "chunks": 8,
   "status": "ok"
 }
 ```
 
-**响应 404：** 文件不存在
-```json
-{"detail": "文件不存在: ../data/documents/xxx.md"}
-```
-
----
+`status` 可能是 `ok`、`skipped` 或 `updated`。文件不存在返回 404；强制更新时旧索引删除失败返回 500。
 
 ## GET /api/documents/list
 
-列出 `data/documents/` 目录下所有 `.md` 文件。
-
-**响应 200：**
 ```json
 {
   "count": 54,
+  "ingested": 54,
   "documents": [
-    "Box_connection.md",
-    "Building_reusable_prompts.md",
-    "Deleting_a_deployment.md",
-    "..."
+    {
+      "name": "Box_connection.md",
+      "ingested": true,
+      "chunks": 8,
+      "category": "IBM_Docs",
+      "ingested_at": "2026-06-06T12:00:00"
+    }
   ]
 }
 ```
 
----
+## GET /api/documents/status
 
-## 规划中的端点（v0.2+）
+```json
+{
+  "total_ingested": 54,
+  "total_chunks": 637,
+  "last_ingestion": "2026-06-06T12:00:00"
+}
+```
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| DELETE | `/api/documents/{id}` | 删除文档及关联向量 |
-| POST | `/api/documents/reingest` | 批量重建索引 |
-| GET | `/api/eval/hit-rate` | 检索命中率评估 |
-| POST | `/api/chat/send` | 增加 `session_id` 支持多轮对话 |
+## DELETE /api/documents/{file_name}
+
+只删除 ChromaDB 和 BM25 索引，不删除原始 Markdown。
+
+```json
+{
+  "file_name": "Box_connection.md",
+  "deleted_vectors": 8,
+  "status": "ok"
+}
+```
+
+## POST /api/documents/reingest-all
+
+通过 Retriever `clear()` 清空 ChromaDB collection 和内存 BM25，再摄入 `data/documents/*.md`。
+
+```json
+{
+  "total_chunks": 637,
+  "total_files": 54,
+  "failed": [],
+  "status": "ok"
+}
+```
+
+## 限制
+
+- 会话历史仅保存在当前进程内。
+- CORS 当前为开发配置。
+- 文档管理路由通过应用内部 Pipeline 执行，属于 MVP 管理接口。

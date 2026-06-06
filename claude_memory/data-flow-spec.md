@@ -451,3 +451,4 @@ interface Message {
 | `routers/chat.py` | (函数式路由) | POST /chat/send → SSE |
 | `schemas/chat.py` | 参见第五节 | Pydantic 请求/响应模型 |
 | `main.py` | `app: FastAPI` | 生命周期管理，启动时构建 pipeline |
+> **归档说明（2026-06-06）**：这是早期数据流设计，不代表当前 Hybrid Search、Reranker、Query Rewrite 和完整上下文评测链路。当前架构见根目录 `README.md`。

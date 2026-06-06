@@ -2360,3 +2360,4 @@ MVP 文件清单对照：
 | 25 | `backend/tests/test_chunker.py` | 3 | ✅ |
 | 26 | `backend/tests/test_embedder.py` | 4 | ✅ |
 | 27 | `frontend/src/core/__tests__/EventEmitter.test.ts` | 10 | ✅ |
+> **归档说明（2026-06-06）**：这是历史实施计划，不代表当前待办。

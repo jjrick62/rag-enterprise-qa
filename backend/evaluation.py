@@ -288,7 +288,7 @@ async def main():
     print(f"评估完成 ({elapsed:.0f}s)")
     print(f"{'='*60}")
     print(f"\n【检索质量】")
-    for k, v in r.retrieval.items():
+    for k, v in report.retrieval.items():
         print(f"  {k}: {v}")
     print(f"\n【生成质量】")
     for k, v in report.generation.items():
@@ -299,17 +299,22 @@ async def main():
     print(f"\n【总结】\n{report.summary}")
 
     # 保存完整报告
-    report_path = os.path.join(os.path.dirname(__file__), "..", "ragabilitytest.md")
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write(generate_markdown_report(report, results=[]))
-    # 修复: 直接保存已生成的数据
+    report_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "data",
+        "evaluations",
+        "archive",
+        "legacy_custom_evaluation.md",
+    )
+    os.makedirs(os.path.dirname(report_path), exist_ok=True)
     md = make_report(report)
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(md)
     print(f"\n完整报告已保存到: {report_path}")
 
 
-def make_report(r: EvalReport) -> str:(report: EvalReport, results: list = None) -> str:
+def make_report(r: EvalReport) -> str:
     return f"""# RAG 系统能力评估报告
 
 > 评估日期: 2026-06-05

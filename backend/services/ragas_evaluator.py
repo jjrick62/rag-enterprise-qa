@@ -32,6 +32,16 @@ class EvalReport:
     summary: str = ""
 
 
+def prepare_evaluation_dataset(dataset: List[Dict]) -> List[Dict]:
+    """Copy evaluation samples without changing the evidence seen by the generator."""
+    prepared = []
+    for sample in dataset:
+        copied = dict(sample)
+        copied["contexts"] = list(sample.get("contexts", []))
+        prepared.append(copied)
+    return prepared
+
+
 class RagasEvaluator(BaseEvaluator):
     """RAGAS 两步法评估器
 
@@ -58,32 +68,23 @@ class RagasEvaluator(BaseEvaluator):
         if not dataset:
             return EvalReport(summary="Empty dataset")
 
-        # 截断过长回答——RAGAS 拆 claims 时答案太长会超 max_tokens
-        trimmed = []
-        for d in dataset:
-            d = dict(d)
-            d["answer"] = d["answer"][:1500]
-            d["contexts"] = [c[:500] for c in d["contexts"]]  # 每段上下文也截断
-            trimmed.append(d)
-
         from datasets import Dataset
-        hf_dataset = Dataset.from_list(trimmed)
+        hf_dataset = Dataset.from_list(prepare_evaluation_dataset(dataset))
 
-        # LLM-as-Judge: MiMo v2.5 Pro via RAGAS llm_factory
-        from openai import OpenAI
+        # LLM-as-Judge: 通过 LLM 工厂获取，Monkey-patch 注入 extra_body
         from ragas.llms import llm_factory
+        from services.llm_factory import get_provider
+        provider = get_provider("judge")
+        client = provider.create_client()
 
-        client = OpenAI(api_key=self._api_key, base_url=self._base_url)
-        # 开启 thinking——MiMo 推理模型需要思考才能做好结构化判断（拆claims、核验）
         _orig_create = client.chat.completions.create
         def _patched_create(*args, **kwargs):
             kwargs.setdefault('extra_body', {})
-            kwargs['extra_body']['enable_thinking'] = True
+            kwargs['extra_body'].update(provider.extra_body)
             return _orig_create(*args, **kwargs)
         client.chat.completions.create = _patched_create
 
-        # max_tokens 设大——RAGAS 拆 claims 时输出很长，默认 3072 不够
-        llm = llm_factory("mimo-v2.5-pro", client=client, temperature=0.0, max_tokens=8192)
+        llm = llm_factory(provider.model, client=client, temperature=0.0, max_tokens=8192)
 
         # Embeddings: 用本地 BGE 模型，不调 DeepSeek（它没有 /embeddings 端点）
         from services.embedder import BGEBaaIEmbedder

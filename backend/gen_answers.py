@@ -1,51 +1,114 @@
-"""Step 1: 生成回答 → 存 JSON"""
-import asyncio, json, urllib.request, time, os, sys
+"""Generate isolated answer datasets for adaptive reranker experiments."""
+import asyncio
+import json
+import os
+import sys
+import time
+
 sys.path.insert(0, os.path.dirname(__file__))
+
 from config import Config
-from services.parser import MDParser
-from services.recursive_chunker import RecursiveChunker
 from services.embedder import BGEBaaIEmbedder
-from services.retriever import ChromaRetriever
+from services.generator import LLMGenerator
 from services.hybrid_retriever import HybridRetriever
-from services.generator import DeepSeekGenerator
-from services.reranker import BgeReranker
+from services.llm_factory import get_provider
 from services.query_rewriter import QueryRewriter
-from services.pipeline import RAGPipeline
+from services.reranker import BgeReranker, adaptive_noise_filter
+from services.retriever import ChromaRetriever
+
+
+EXPERIMENTS = {
+    "off": None,
+    "r070": 0.70,
+    "r075": 0.75,
+    "r080": 0.80,
+}
+
+
+async def generate_answer(generator, question, contexts):
+    answer = ""
+    full_contexts = []
+    async for event in generator.generate(question, contexts):
+        if event.type == "token":
+            answer += event.content or ""
+        elif event.type == "contexts":
+            full_contexts = event.contexts or []
+    return answer, full_contexts
+
+
+def save_datasets(data_dir, datasets):
+    for label, dataset in datasets.items():
+        path = os.path.join(data_dir, f"eval_dataset_{label}.json")
+        with open(path, "w", encoding="utf-8") as output:
+            json.dump(dataset, output, ensure_ascii=False, indent=2)
+
 
 async def main():
     config = Config.load()
-    emb = BGEBaaIEmbedder(model_name=config.embedding_model, device="cpu", cache_folder=config.model_cache_path)
-    pipeline = (
-        RAGPipeline.builder()
-        .with_parser(MDParser())
-        .with_chunker(RecursiveChunker(500, 0.15, 50))
-        .with_embedder(emb)
-        .with_retriever(HybridRetriever(ChromaRetriever(config.chroma_path, emb)))
-        .with_generator(DeepSeekGenerator(api_key=config.deepseek_api_key))
-        .with_reranker(BgeReranker(device="cpu", cache_folder=config.model_cache_path))
-        .with_rewriter(QueryRewriter(api_key=config.deepseek_api_key))
-        .build()
+    project_data_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "data")
     )
-    # 优先读本地缓存，没有才联网拉
-    local_cache = os.path.join(os.path.dirname(__file__), "..", "data", "watsonxDocsQA_test.json")
-    if os.path.exists(local_cache):
-        qa_pairs = json.load(open(local_cache, "r", encoding="utf-8"))
-        print(f"Loaded {len(qa_pairs)} QA from local cache")
-    else:
-        qa_url = "https://datasets-server.huggingface.co/rows?dataset=ibm-research%2FwatsonxDocsQA&config=question_answers&split=test&offset=0&length=50"
-        with urllib.request.urlopen(qa_url) as r: qa_data = json.loads(r.read().decode())
-        qa_pairs = [(r["row"]["question"], r["row"]["correct_answer"]) for r in qa_data["rows"]]
-    dataset = []
-    t0 = time.time()
-    for i, (q, gt) in enumerate(qa_pairs, 1):
-        full = ""; contexts = []
-        async for e in pipeline.query(q):
-            if e.type == "token": full += e.content
-            elif e.type == "sources": contexts = [s.excerpt[:500] for s in (e.sources or [])]
-        dataset.append({"question": q, "answer": full[:1500], "contexts": contexts, "ground_truth": gt})
-        print(f"  #{i:02d} {len(full)}字 {len(contexts)}源 | {q[:50]}...")
-    path = os.path.join(os.path.dirname(__file__), "..", "data", "eval_dataset.json")
-    json.dump(dataset, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-    print(f"\nSaved {len(dataset)} QA to {path} ({time.time()-t0:.0f}s)")
+    data_dir = os.path.join(project_data_dir, "evaluations", "datasets")
+    os.makedirs(data_dir, exist_ok=True)
+    qa_path = os.path.join(project_data_dir, "watsonxDocsQA_test.json")
+    qa_pairs = json.load(open(qa_path, "r", encoding="utf-8"))
 
-asyncio.run(main())
+    embedder = BGEBaaIEmbedder(
+        model_name=config.embedding_model,
+        device="cpu",
+        cache_folder=config.model_cache_path,
+    )
+    retriever = HybridRetriever(ChromaRetriever(config.chroma_path, embedder))
+    reranker = BgeReranker(
+        device="cpu",
+        cache_folder=config.model_cache_path,
+        adaptive_cutoff_ratio=None,
+    )
+    rewriter = QueryRewriter(api_key=config.deepseek_api_key)
+    generator = LLMGenerator(provider=get_provider("generate"))
+    datasets = {label: [] for label in EXPERIMENTS}
+
+    print(f"Loaded {len(qa_pairs)} QA; experiments={list(EXPERIMENTS)}")
+    started = time.time()
+    for index, (question, ground_truth) in enumerate(qa_pairs, 1):
+        search_query = await rewriter.rewrite(question)
+        query_embedding = embedder.embed([search_query])[0]
+        candidates = retriever.search(
+            query_embedding=query_embedding,
+            top_k=20,
+            query_text=search_query,
+        )
+        common_top5 = reranker.rerank(question, candidates, top_k=5)
+
+        counts = []
+        for label, ratio in EXPERIMENTS.items():
+            contexts = (
+                common_top5
+                if ratio is None
+                else adaptive_noise_filter(common_top5, ratio, keep_min=3)
+            )
+            answer, full_contexts = await generate_answer(
+                generator,
+                question,
+                contexts,
+            )
+            datasets[label].append(
+                {
+                    "question": question,
+                    "answer": answer,
+                    "contexts": full_contexts,
+                    "ground_truth": ground_truth,
+                    "experiment": label,
+                    "adaptive_cutoff_ratio": ratio,
+                }
+            )
+            counts.append(f"{label}:{len(full_contexts)}")
+
+        save_datasets(data_dir, datasets)
+        print(f"#{index:02d} {' '.join(counts)} | {question[:60]}")
+
+    print(f"Saved four isolated datasets in {time.time() - started:.0f}s")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
