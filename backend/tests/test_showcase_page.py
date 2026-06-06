@@ -1,3 +1,5 @@
+import json
+import re
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
@@ -5,6 +7,12 @@ from typing import Callable
 
 
 SHOWCASE_PATH = Path(__file__).resolve().parents[2] / "frontend" / "showcase.html"
+SHOWCASE_DATA_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "assets"
+    / "diagrams"
+    / "showcase-data.json"
+)
 GITHUB_URL = "https://github.com/jjrick62/rag-enterprise-qa"
 VOID_ELEMENTS = {
     "area",
@@ -253,3 +261,94 @@ def test_showcase_supports_mobile_and_reduced_motion() -> None:
     assert 'name="viewport"' in html
     assert "width=device-width" in html
     assert "prefers-reduced-motion" in html
+
+
+def test_showcase_embeds_canonical_data_as_json() -> None:
+    document = parse_showcase()
+    data_script = find_one(
+        document,
+        "script",
+        lambda node: node.attrs.get("id") == "showcase-data",
+    )
+
+    assert data_script.attrs.get("type") == "application/json"
+    assert json.loads(data_script.text) == json.loads(
+        SHOWCASE_DATA_PATH.read_text(encoding="utf-8")
+    )
+
+    html = read_showcase()
+    assert 'JSON.parse(document.getElementById("showcase-data").textContent)' in html
+
+
+def test_showcase_reveals_are_visible_without_javascript() -> None:
+    html = read_showcase()
+
+    assert re.search(r"\.reveal\s*\{[^}]*opacity:\s*1", html, re.DOTALL)
+    assert re.search(
+        r"\.js\s+\.reveal\s*\{[^}]*opacity:\s*0",
+        html,
+        re.DOTALL,
+    )
+    assert ".js .reveal.is-visible" in html
+
+
+def test_showcase_threshold_table_contains_four_static_rows() -> None:
+    document = parse_showcase()
+    threshold_body = find_one(
+        document,
+        "tbody",
+        lambda node: node.attrs.get("id") == "threshold-body",
+    )
+    rows = threshold_body.descendants("tr")
+
+    assert len(rows) == 4
+    assert [row.descendants("td")[0].text for row in rows] == [
+        "off",
+        "0.70",
+        "0.75",
+        "0.80",
+    ]
+
+
+def test_showcase_uses_semantic_iteration_lookup() -> None:
+    html = read_showcase()
+
+    assert not re.search(r"iterations\s*\[\s*(?:4|10)\s*\]", html)
+    assert ".find(" in html
+    assert 'status === "contaminated"' in html
+    assert 'item.id === "GT"' in html
+    assert 'status === "upper_bound"' in html
+    assert "current_baseline" in html
+    assert 'status === "current"' in html
+
+
+def test_showcase_exposes_all_iteration_metrics_accessibly() -> None:
+    document = parse_showcase()
+    summary = find_one(
+        document,
+        "table",
+        lambda node: node.attrs.get("id") == "iteration-data-summary",
+    )
+    rows = summary.descendants("tbody")[0].descendants("tr")
+
+    assert len(rows) == 12
+    for row in rows:
+        cells = row.descendants("td")
+        assert len(cells) == 5
+        assert cells[0].text
+        assert all(cells[index].text for index in (1, 2, 3))
+        assert cells[4].text
+
+    scroll_regions = [
+        node
+        for node in document.descendants("div")
+        if node.has_class("scroll-region")
+    ]
+    assert len(scroll_regions) >= 2
+    for region in scroll_regions:
+        assert region.attrs.get("tabindex") == "0"
+        assert region.attrs.get("aria-label")
+
+    html = read_showcase()
+    assert "stroke-dasharray" in html
+    assert all(shape in html for shape in ('shape: "circle"', 'shape: "square"', 'shape: "diamond"'))

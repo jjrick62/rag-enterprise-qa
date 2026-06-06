@@ -390,7 +390,27 @@
       transform: rotate(-1.5deg);
     }
 
-    .threshold-table-wrap { overflow-x: auto; }
+    .scroll-region {
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+    }
+
+    .scroll-region:focus-visible {
+      outline: 3px solid var(--acid);
+      outline-offset: 4px;
+    }
+
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
 
     .threshold-table {
       width: 100%;
@@ -666,12 +686,17 @@
     }
 
     .reveal {
+      opacity: 1;
+      transform: none;
+    }
+
+    .js .reveal {
       opacity: 0;
       transform: translateY(24px);
       transition: opacity .7s ease, transform .7s ease;
     }
 
-    .reveal.is-visible {
+    .js .reveal.is-visible {
       opacity: 1;
       transform: none;
     }
@@ -719,7 +744,6 @@
       .section-head { gap: 24px; margin-bottom: 38px; }
       h2 { font-size: clamp(2.45rem, 12vw, 3.5rem); }
       .chart-panel { padding: 16px 12px 20px; box-shadow: 7px 7px 0 rgba(17,21,19,.06); }
-      .chart-panel { overflow-x: auto; overscroll-behavior-inline: contain; }
       #ragas-chart { width: 900px; min-height: 378px; }
       .chart-flags,
       .case-grid,
@@ -812,7 +836,35 @@
             </div>
             <span class="chart-note">RAGAS SCORE / 0.40—1.00</span>
           </div>
-          <svg id="ragas-chart" role="img" aria-labelledby="chart-title chart-desc"></svg>
+          <div class="chart-scroll scroll-region" tabindex="0" aria-label="RAGAS 迭代图，可横向滚动查看全部点位">
+            <svg id="ragas-chart" role="img" aria-labelledby="chart-title chart-desc"></svg>
+          </div>
+          <table id="iteration-data-summary" class="visually-hidden">
+            <caption>RAGAS 全部迭代点位数据</caption>
+            <thead>
+              <tr>
+                <th>迭代</th>
+                <th>Faithfulness</th>
+                <th>Answer Relevancy</th>
+                <th>Context Precision</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>L0</td><td>0.566</td><td>0.672</td><td>0.560</td><td>historical</td></tr>
+              <tr><td>L1</td><td>0.610</td><td>0.770</td><td>0.550</td><td>historical</td></tr>
+              <tr><td>L2</td><td>0.544</td><td>0.753</td><td>0.865</td><td>historical</td></tr>
+              <tr><td>L3</td><td>0.540</td><td>0.762</td><td>0.614</td><td>historical</td></tr>
+              <tr><td>GT</td><td>0.864</td><td>0.897</td><td>0.911</td><td>upper_bound</td></tr>
+              <tr><td>L4</td><td>0.498</td><td>0.784</td><td>0.730</td><td>contaminated</td></tr>
+              <tr><td>L5</td><td>0.451</td><td>0.791</td><td>0.721</td><td>contaminated</td></tr>
+              <tr><td>L6</td><td>0.469</td><td>0.808</td><td>0.701</td><td>contaminated</td></tr>
+              <tr><td>F0</td><td>0.874</td><td>0.818</td><td>0.816</td><td>formal</td></tr>
+              <tr><td>F1</td><td>0.901</td><td>0.791</td><td>0.834</td><td>formal</td></tr>
+              <tr><td>F2</td><td>0.918</td><td>0.826</td><td>0.844</td><td>current</td></tr>
+              <tr><td>F3</td><td>0.937</td><td>0.780</td><td>0.799</td><td>formal</td></tr>
+            </tbody>
+          </table>
           <figcaption id="chart-desc" class="chart-flags">
             <div class="flag flag-warn">
               <strong>L4-L6 受截断污染</strong>
@@ -837,7 +889,7 @@
             <span class="optimum">0.75 综合最优</span>
           </div>
 
-          <div class="threshold-table-wrap reveal">
+          <div class="threshold-table-wrap scroll-region reveal" tabindex="0" aria-label="阈值实验数据表，可横向滚动查看全部列">
             <table class="threshold-table">
               <caption class="eyebrow">F0—F3 / 完整上下文阈值实验</caption>
               <thead>
@@ -850,7 +902,12 @@
                   <th>平均上下文数</th>
                 </tr>
               </thead>
-              <tbody id="threshold-body"></tbody>
+              <tbody id="threshold-body">
+                <tr><td>off</td><td>0.874</td><td>0.818</td><td>0.816</td><td>0.836</td><td>5.00</td></tr>
+                <tr><td>0.70</td><td>0.901</td><td>0.791</td><td>0.834</td><td>0.842</td><td>4.47</td></tr>
+                <tr class="selected"><td class="best">0.75</td><td>0.918</td><td>0.826</td><td>0.844</td><td class="best">0.863</td><td>4.10</td></tr>
+                <tr><td>0.80</td><td>0.937</td><td>0.780</td><td>0.799</td><td>0.839</td><td>3.83</td></tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -1044,30 +1101,142 @@
     </div>
   </footer>
 
+  <script type="application/json" id="showcase-data">
+{
+  "meta": {
+    "dataset": "watsonxDocsQA",
+    "questions": 30,
+    "current_baseline": "F2",
+    "generated_at": "2026-06-07"
+  },
+  "iterations": [
+    {
+      "id": "L0",
+      "faithfulness": 0.566,
+      "answer_relevancy": 0.672,
+      "context_precision": 0.560,
+      "status": "historical"
+    },
+    {
+      "id": "L1",
+      "faithfulness": 0.610,
+      "answer_relevancy": 0.770,
+      "context_precision": 0.550,
+      "status": "historical"
+    },
+    {
+      "id": "L2",
+      "faithfulness": 0.544,
+      "answer_relevancy": 0.753,
+      "context_precision": 0.865,
+      "status": "historical"
+    },
+    {
+      "id": "L3",
+      "faithfulness": 0.540,
+      "answer_relevancy": 0.762,
+      "context_precision": 0.614,
+      "status": "historical"
+    },
+    {
+      "id": "GT",
+      "faithfulness": 0.864,
+      "answer_relevancy": 0.897,
+      "context_precision": 0.911,
+      "status": "upper_bound"
+    },
+    {
+      "id": "L4",
+      "faithfulness": 0.498,
+      "answer_relevancy": 0.784,
+      "context_precision": 0.730,
+      "status": "contaminated"
+    },
+    {
+      "id": "L5",
+      "faithfulness": 0.451,
+      "answer_relevancy": 0.791,
+      "context_precision": 0.721,
+      "status": "contaminated"
+    },
+    {
+      "id": "L6",
+      "faithfulness": 0.469,
+      "answer_relevancy": 0.808,
+      "context_precision": 0.701,
+      "status": "contaminated"
+    },
+    {
+      "id": "F0",
+      "faithfulness": 0.874,
+      "answer_relevancy": 0.818,
+      "context_precision": 0.816,
+      "status": "formal"
+    },
+    {
+      "id": "F1",
+      "faithfulness": 0.901,
+      "answer_relevancy": 0.791,
+      "context_precision": 0.834,
+      "status": "formal"
+    },
+    {
+      "id": "F2",
+      "faithfulness": 0.918,
+      "answer_relevancy": 0.826,
+      "context_precision": 0.844,
+      "status": "current"
+    },
+    {
+      "id": "F3",
+      "faithfulness": 0.937,
+      "answer_relevancy": 0.780,
+      "context_precision": 0.799,
+      "status": "formal"
+    }
+  ],
+  "thresholds": [
+    {
+      "threshold": "off",
+      "contexts": 5.00,
+      "faithfulness": 0.874,
+      "answer_relevancy": 0.818,
+      "context_precision": 0.816,
+      "mean": 0.836,
+      "selected": false
+    },
+    {
+      "threshold": "0.70",
+      "contexts": 4.47,
+      "faithfulness": 0.901,
+      "answer_relevancy": 0.791,
+      "context_precision": 0.834,
+      "mean": 0.842,
+      "selected": false
+    },
+    {
+      "threshold": "0.75",
+      "contexts": 4.10,
+      "faithfulness": 0.918,
+      "answer_relevancy": 0.826,
+      "context_precision": 0.844,
+      "mean": 0.863,
+      "selected": true
+    },
+    {
+      "threshold": "0.80",
+      "contexts": 3.83,
+      "faithfulness": 0.937,
+      "answer_relevancy": 0.780,
+      "context_precision": 0.799,
+      "mean": 0.839,
+      "selected": false
+    }
+  ]
+}
+  </script>
   <script>
-    // Mirrors assets/diagrams/showcase-data.json so this page also works over file://.
-    const showcaseData = {
-      iterations: [
-        { id: "L0", faithfulness: 0.566, answer_relevancy: 0.672, context_precision: 0.560, status: "historical" },
-        { id: "L1", faithfulness: 0.610, answer_relevancy: 0.770, context_precision: 0.550, status: "historical" },
-        { id: "L2", faithfulness: 0.544, answer_relevancy: 0.753, context_precision: 0.865, status: "historical" },
-        { id: "L3", faithfulness: 0.540, answer_relevancy: 0.762, context_precision: 0.614, status: "historical" },
-        { id: "GT", faithfulness: 0.864, answer_relevancy: 0.897, context_precision: 0.911, status: "upper_bound" },
-        { id: "L4", faithfulness: 0.498, answer_relevancy: 0.784, context_precision: 0.730, status: "contaminated" },
-        { id: "L5", faithfulness: 0.451, answer_relevancy: 0.791, context_precision: 0.721, status: "contaminated" },
-        { id: "L6", faithfulness: 0.469, answer_relevancy: 0.808, context_precision: 0.701, status: "contaminated" },
-        { id: "F0", faithfulness: 0.874, answer_relevancy: 0.818, context_precision: 0.816, status: "formal" },
-        { id: "F1", faithfulness: 0.901, answer_relevancy: 0.791, context_precision: 0.834, status: "formal" },
-        { id: "F2", faithfulness: 0.918, answer_relevancy: 0.826, context_precision: 0.844, status: "current" },
-        { id: "F3", faithfulness: 0.937, answer_relevancy: 0.780, context_precision: 0.799, status: "formal" }
-      ],
-      thresholds: [
-        { threshold: "off", contexts: 5.00, faithfulness: 0.874, answer_relevancy: 0.818, context_precision: 0.816, mean: 0.836, selected: false },
-        { threshold: "0.70", contexts: 4.47, faithfulness: 0.901, answer_relevancy: 0.791, context_precision: 0.834, mean: 0.842, selected: false },
-        { threshold: "0.75", contexts: 4.10, faithfulness: 0.918, answer_relevancy: 0.826, context_precision: 0.844, mean: 0.863, selected: true },
-        { threshold: "0.80", contexts: 3.83, faithfulness: 0.937, answer_relevancy: 0.780, context_precision: 0.799, mean: 0.839, selected: false }
-      ]
-    };
+    const showcaseData = JSON.parse(document.getElementById("showcase-data").textContent);
 
     const SVG_NS = "http://www.w3.org/2000/svg";
     const createSvg = (name, attrs = {}, text = "") => {
@@ -1089,32 +1258,37 @@
       const x = index => margin.left + (plotWidth / (showcaseData.iterations.length - 1)) * index;
       const y = value => margin.top + ((maxY - value) / (maxY - minY)) * plotHeight;
       const styles = [
-        { key: "faithfulness", color: "#ff5c35" },
-        { key: "answer_relevancy", color: "#111513" },
-        { key: "context_precision", color: "#42d5d2" }
+        { key: "faithfulness", color: "#ff5c35", dash: "none", shape: "circle" },
+        { key: "answer_relevancy", color: "#111513", dash: "10 6", shape: "square" },
+        { key: "context_precision", color: "#42d5d2", dash: "3 6", shape: "diamond" }
       ];
 
       svg.replaceChildren();
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       svg.append(createSvg("title", { id: "chart-title" }, "RAGAS L0 到 F3 三指标迭代折线图"));
 
-      const contaminatedStart = x(5) - 30;
-      const contaminatedEnd = x(7) + 30;
-      svg.append(createSvg("rect", {
-        x: contaminatedStart,
-        y: margin.top,
-        width: contaminatedEnd - contaminatedStart,
-        height: plotHeight,
-        fill: "#ff5c35",
-        opacity: ".08"
-      }));
-      svg.append(createSvg("text", {
-        x: contaminatedStart + 12,
-        y: margin.top + 20,
-        fill: "#b63b21",
-        "font-family": "DM Mono, monospace",
-        "font-size": "11"
-      }, "TRUNCATED / CONTAMINATED"));
+      const contaminated = showcaseData.iterations
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => item.status === "contaminated");
+      if (contaminated.length) {
+        const contaminatedStart = x(contaminated[0].index) - 30;
+        const contaminatedEnd = x(contaminated[contaminated.length - 1].index) + 30;
+        svg.append(createSvg("rect", {
+          x: contaminatedStart,
+          y: margin.top,
+          width: contaminatedEnd - contaminatedStart,
+          height: plotHeight,
+          fill: "#ff5c35",
+          opacity: ".08"
+        }));
+        svg.append(createSvg("text", {
+          x: contaminatedStart + 12,
+          y: margin.top + 20,
+          fill: "#b63b21",
+          "font-family": "DM Mono, monospace",
+          "font-size": "11"
+        }, "TRUNCATED / CONTAMINATED"));
+      }
 
       for (let tick = 0.4; tick <= 1.001; tick += 0.1) {
         const tickY = y(tick);
@@ -1167,31 +1341,61 @@
           fill: "none",
           stroke: series.color,
           "stroke-width": "3",
+          "stroke-dasharray": series.dash,
           "stroke-linecap": "round",
           "stroke-linejoin": "round"
         }));
 
         showcaseData.iterations.forEach((item, index) => {
           const current = item.status === "current";
-          svg.append(createSvg("circle", {
-            cx: x(index),
-            cy: y(item[series.key]),
-            r: current ? "6" : "4",
+          const pointX = x(index);
+          const pointY = y(item[series.key]);
+          const radius = current ? 6 : 4;
+          const attrs = {
             fill: current ? "#c8ff38" : "#faf9f2",
             stroke: series.color,
             "stroke-width": current ? "3" : "2"
-          }));
+          };
+          if (series.shape === "square") {
+            svg.append(createSvg("rect", {
+              x: pointX - radius,
+              y: pointY - radius,
+              width: radius * 2,
+              height: radius * 2,
+              ...attrs
+            }));
+          } else if (series.shape === "diamond") {
+            svg.append(createSvg("polygon", {
+              points: `${pointX},${pointY - radius} ${pointX + radius},${pointY} ${pointX},${pointY + radius} ${pointX - radius},${pointY}`,
+              ...attrs
+            }));
+          } else {
+            svg.append(createSvg("circle", {
+              cx: pointX,
+              cy: pointY,
+              r: radius,
+              ...attrs
+            }));
+          }
         });
       });
 
+      const upperBound = showcaseData.iterations.find(
+        item => item.id === "GT" || item.status === "upper_bound"
+      );
+      const current = showcaseData.iterations.find(
+        item => item.id === showcaseData.meta.current_baseline || item.status === "current"
+      );
       [
-        { index: 4, text: "GT / UPPER BOUND", color: "#9a6b00", yOffset: -18 },
-        { index: 10, text: "F2 / CURRENT", color: "#111513", yOffset: -25 }
+        { item: upperBound, text: "GT / UPPER BOUND", color: "#9a6b00", yOffset: -18 },
+        { item: current, text: `${showcaseData.meta.current_baseline} / CURRENT`, color: "#111513", yOffset: -25 }
       ].forEach(marker => {
-        const item = showcaseData.iterations[marker.index];
+        if (!marker.item) return;
+        const item = marker.item;
+        const markerIndex = showcaseData.iterations.indexOf(item);
         const markerY = Math.min(y(item.faithfulness), y(item.answer_relevancy), y(item.context_precision));
         svg.append(createSvg("text", {
-          x: x(marker.index),
+          x: x(markerIndex),
           y: markerY + marker.yOffset,
           "text-anchor": "middle",
           fill: marker.color,
@@ -1199,29 +1403,6 @@
           "font-size": "11",
           "font-weight": "500"
         }, marker.text));
-      });
-    }
-
-    function renderThresholds() {
-      const body = document.getElementById("threshold-body");
-      showcaseData.thresholds.forEach(row => {
-        const tr = document.createElement("tr");
-        if (row.selected) tr.className = "selected";
-        const values = [
-          row.threshold,
-          row.faithfulness.toFixed(3),
-          row.answer_relevancy.toFixed(3),
-          row.context_precision.toFixed(3),
-          row.mean.toFixed(3),
-          row.contexts.toFixed(2)
-        ];
-        values.forEach((value, index) => {
-          const td = document.createElement("td");
-          td.textContent = value;
-          if (row.selected && (index === 0 || index === 4)) td.className = "best";
-          tr.append(td);
-        });
-        body.append(tr);
       });
     }
 
@@ -1241,9 +1422,13 @@
       document.querySelectorAll(".reveal").forEach(node => observer.observe(node));
     }
 
-    renderChart();
-    renderThresholds();
+    document.documentElement.classList.add("js");
     enableReveals();
+    try {
+      renderChart();
+    } catch (error) {
+      console.error("Unable to render the RAGAS chart.", error);
+    }
   </script>
 </body>
 </html>
