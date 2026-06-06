@@ -137,6 +137,15 @@ class BaseRetriever(ABC):
         """
         ...
 
+    @abstractmethod
+    def clear(self) -> int:
+        """清空检索器中的全部文档块
+
+        Returns:
+            删除的文档块数量
+        """
+        ...
+
 
 class BaseReranker(ABC):
     """重排序器——对候选文档列表进行精排

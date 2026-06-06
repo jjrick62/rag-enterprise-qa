@@ -26,12 +26,18 @@ async def main():
         .with_rewriter(QueryRewriter(api_key=config.deepseek_api_key))
         .build()
     )
-    qa_url = "https://datasets-server.huggingface.co/rows?dataset=ibm-research%2FwatsonxDocsQA&config=question_answers&split=test&offset=0&length=50"
-    with urllib.request.urlopen(qa_url) as r: qa_data = json.loads(r.read().decode())
-    qa_pairs = [(r["row"]["question"], r["row"]["correct_answer"]) for r in qa_data["rows"]]
+    # 优先读本地缓存，没有才联网拉
+    local_cache = os.path.join(os.path.dirname(__file__), "..", "data", "watsonxDocsQA_test.json")
+    if os.path.exists(local_cache):
+        qa_pairs = json.load(open(local_cache, "r", encoding="utf-8"))
+        print(f"Loaded {len(qa_pairs)} QA from local cache")
+    else:
+        qa_url = "https://datasets-server.huggingface.co/rows?dataset=ibm-research%2FwatsonxDocsQA&config=question_answers&split=test&offset=0&length=50"
+        with urllib.request.urlopen(qa_url) as r: qa_data = json.loads(r.read().decode())
+        qa_pairs = [(r["row"]["question"], r["row"]["correct_answer"]) for r in qa_data["rows"]]
     dataset = []
     t0 = time.time()
-    for i, (q, gt) in enumerate(qa_pairs[:20], 1):
+    for i, (q, gt) in enumerate(qa_pairs, 1):
         full = ""; contexts = []
         async for e in pipeline.query(q):
             if e.type == "token": full += e.content

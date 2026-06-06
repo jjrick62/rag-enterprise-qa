@@ -112,3 +112,11 @@ class ChromaRetriever(BaseRetriever):
         if ids_to_delete:
             self._collection.delete(ids=ids_to_delete)
         return len(ids_to_delete)
+
+    def clear(self) -> int:
+        """通过 ChromaDB collection API 清空数据，保留活动客户端。"""
+        results = self._collection.get(include=[])
+        ids_to_delete = results["ids"]
+        if ids_to_delete:
+            self._collection.delete(ids=ids_to_delete)
+        return len(ids_to_delete)

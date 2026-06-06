@@ -37,6 +37,24 @@ SHORT = "# 短节\n只有一句话。"
 
 NO_HEADING = "这是普通文本。没有标题。单段内容。"
 
+TUNING_TABLE = """Parameters for tuning foundation models
+
+Parameter details
+
+The parameters that you change when you tune a model are related to the tuning experiment.
+
+Table 1: Tuning parameters
+
+Parameter name                      Value options  Default value  Learn more
+
+Initialization method               Random, Text   Random         link
+Initialization text                 None           None           link
+Batch size                          1 - 16         16             link
+Accumulation steps                  1 - 128        16             link
+Learning rate                       0.01 - 0.5     0.3            link
+Number of epochs (training cycles)  1 - 50         20             link
+"""
+
 
 class TestRecursiveChunker:
 
@@ -109,3 +127,34 @@ class TestRecursiveChunker:
         c = RecursiveChunker(chunk_size=500)
         result = c.chunk(NO_HEADING, "test", "test.md")
         assert len(result) == 1
+
+    def test_table_chunk_includes_deterministic_document_context(self):
+        c = RecursiveChunker(chunk_size=500)
+
+        result = c.chunk(
+            TUNING_TABLE,
+            "IBM_Docs",
+            "Parameters_for_tuning_foundation_models.md",
+        )
+
+        table_chunk = next(
+            chunk for chunk in result
+            if "Table 1: Tuning parameters" in chunk.content
+        )
+        assert (
+            "Document: Parameters for tuning foundation models"
+            in table_chunk.content
+        )
+        assert "Category: IBM Docs" in table_chunk.content
+        assert (
+            "Table context: Tuning parameters from "
+            "Parameters for tuning foundation models"
+            in table_chunk.content
+        )
+
+    def test_non_table_chunk_content_is_not_context_enriched(self):
+        c = RecursiveChunker(chunk_size=500)
+
+        result = c.chunk(NO_HEADING, "IBM_Docs", "ordinary_document.md")
+
+        assert result[0].content == NO_HEADING

@@ -1,0 +1,122 @@
+[
+  [
+    "What foundation models are available in watsonx.ai ?",
+    "The following models are available in watsonx.ai: \nflan-t5-xl-3b\nFlan-t5-xxl-11b\nflan-ul2-20b\ngpt-neox-20b\ngranite-13b-chat-v2\ngranite-13b-chat-v1\ngranite-13b-instruct-v2\ngranite-13b-instruct-v1\nllama-2-13b-chat\nllama-2-70b-chat\nmpt-7b-instruct2\nmt0-xxl-13b\nstarcoder-15.5b"
+  ],
+  [
+    "What is greedy decoding?",
+    "Greedy decoding produces output that closely matches the most common language in the model's pretraining data and in your prompt text, which is desirable in less creative or fact-based use cases. A weakness of greedy decoding is that it can cause repetitive loops in the generated output."
+  ],
+  [
+    "What tuning parameters are available for IBM foundation models?",
+    "Tuning parameter values for IBM foundation models:\nInitialization method\ninitialization text\nbatch_size\naccumulate_steps\nlearning_rate\nnum_epochs\""
+  ],
+  [
+    "What are tokens and tokenization?",
+    "A token is a collection of characters that has semantic meaning for a model. Tokenization is the process of converting the words in your prompt into tokens."
+  ],
+  [
+    "What is the \"random seed\" parameter in prompt tuning experiments?",
+    "Random seed refers to the number that is used to start the random number generator that the model uses to randomize its token choices. If you want to remove this intentional randomness as a variable from your experiments, you can pick a number and specify that same number each time you run the experiment."
+  ],
+  [
+    "How to build reusable prompts?",
+    "A great way to add flexibility to a prompt is to add prompt variables. A prompt variable is a placeholder keyword that you include in the static text of your prompt at creation time and replace with text dynamically at run time."
+  ],
+  [
+    "What are the functionalities of the Prompt Lab in IBM watsonx.ai, and how does it facilitate the process of crafting and optimizing prompts for deployed foundation models?",
+    "In the Prompt Lab in IBM watsonx.ai, you can experiment with prompting different foundation models, explore sample prompts, and save and share your best prompts.\n\nYou use the Prompt Lab to engineer effective prompts that you submit to deployed foundation models for inferencing. You do not use the Prompt Lab to create new foundation models."
+  ],
+  [
+    "How do I avoid repetitive text in prompt tuning experiments?",
+    "If you notice repetitive text in the generated output from your selected prompt, model, and parameters, you can address this by implementing a repetition penalty. This penalty reduces the likelihood of the model repeating tokens that were recently used, resulting in more diverse output. Adjusting the penalty to a higher value enhances the diversity and variability of the generated text."
+  ],
+  [
+    "What happens to unsaved prompt text within Prompt Lab, and how long does it persist on the webpage before being deleted?",
+    "The prompt text remains unsaved unless the user decides to save their progress. While unsaved, the prompt text persists on the webpage until a page refresh occurs, upon which the text is automatically deleted."
+  ],
+  [
+    "Why deploy a prompt template?",
+    "Deploy a prompt template so you can add it to a business workflow or so you can evaluate the prompt template to measure performance."
+  ],
+  [
+    "What is trust calibration?",
+    "Trust calibration is the process of evaluating and adjusting one's trust in an AI system based on factors such as its accuracy, reliability, and credibility."
+  ],
+  [
+    "What are parameters in CLEM?",
+    "Parameters are user-defined variables that are saved and persisted with the current flow or SuperNode and can be accessed from the user interface as well as through scripting. They are often used in scripting to control the behavior of the script, by providing information about fields and values that don't need to be hard coded in the script."
+  ],
+  [
+    "What is a data warehouse?",
+    "A data warehouse is a large, centralized repository of data collected from various sources that is used for reporting and data analysis. It primarily stores structured and semi-structured data, enabling businesses to make informed decisions."
+  ],
+  [
+    "What is the retrieval-augmented generation pattern?",
+    "The retrieval-augmented generation pattern is a technique for generating factually accurate output based on information in a knowledge base. It involves three basic steps: searching for relevant content in the knowledge base, pulling the most relevant content into the prompt as context, and sending the combined prompt text to the model to generate output."
+  ],
+  [
+    "What is the workflow for a Federated Learning experiment?",
+    "The workflow for a Federated Learning experiment involves three main roles: the data scientist, the party, and the admin. The data scientist identifies the data sources, creates an initial \"untrained\" model, and creates a data handler file. The party connects to the aggregator on their system, which can be remote. The admin controls the Federated Learning experiment by configuring the experiment to accommodate remote parties and starting the aggregator."
+  ],
+  [
+    "What are the benefits of using IBM Federated Learning?",
+    "IBM Federated Learning enables sites with large volumes of data to be collected, cleaned, and trained on an enterprise scale without migration. It also accommodates for the differences in data format, quality, and constraints, and complies with data privacy and security while training models with different data sources."
+  ],
+  [
+    "How do I delete a deployment using the Python client?",
+    "To delete a deployment using the Python client, use the `client.deployments.delete(deployment_uid)` method. This method will return a SUCCESS message if the deployment was successfully deleted. You can also use the `client.deployments.list()` method to check that the deployment was removed."
+  ],
+  [
+    "What is an ontology?",
+    "An ontology is an explicit formal specification of the representation of the objects, concepts, and other entities that can exist in some area of interest and the relationships among them."
+  ],
+  [
+    "What are the key functions of the geospatial library?",
+    "The geospatial library includes functions to read and write data, topological functions, geohashing, indexing, ellipsoidal and routing functions. All calculated geometries are accurate without the need for projections, and the geospatial functions take advantage of the distributed processing capabilities provided by Spark. The library also includes native geohashing support for geometries used in simple aggregations and in indexing, thereby improving storage retrieval considerably. Additionally, the library supports extensions of Spark distributed joins and the SQL/MM extensions to Spark SQL."
+  ],
+  [
+    "What is a map chart?",
+    "A map chart is a type of chart that is commonly used to compare values and show categories across geographical regions. It is most beneficial when the data contains geographic information (countries, regions, states, counties, postal codes, and so on)."
+  ],
+  [
+    "What versions of IBM Db2 for z/OS are supported?",
+    "IBM Db2 for z/OS version 11 and later are supported."
+  ],
+  [
+    "What is the purpose of the Sim Eval node in IBM SPSS Modeler?",
+    "The Sim Eval node is a terminal node that evaluates a specified field, provides a distribution of the field, and produces charts of distributions and correlations. It is primarily used to evaluate continuous fields and is designed to be used with data that was obtained from the Sim Fit and Sim Gen nodes."
+  ],
+  [
+    "What is a deterministic computing system?",
+    "Deterministic describes a characteristic of computing systems when their outputs are completely determined by their inputs."
+  ],
+  [
+    "How can I search for assets across the platform?",
+    "You can use the global search bar to search for assets across all the projects and deployment spaces to which you have access."
+  ],
+  [
+    "What file types are supported by the Box connection?",
+    "The Box connection supports Avro, CSV, Delimited text, Excel, JSON, ORC, Parquet, SAS, SAV, SHP, and XML file types."
+  ],
+  [
+    "What are the properties of the Bayes Net node in the Clementine data mining tool?",
+    "The Bayes Net node in the Clementine data mining tool has several properties, including the ability to build a probability model by combining observed and recorded evidence with real-world knowledge, the ability to focus on Tree Augmented Naïve Bayes (TAN) and Markov Blanket networks, and the ability to use a single target field and one or more input fields. Additionally, the node can be used for classification and can be trained using existing models. The node also allows for feature selection and the use of different methods for estimating conditional probability tables and determining independence. The significance level and maximal conditioning set can also be specified. Finally, the node allows for the selection of specific fields from the dataset to be always used when building the Bayesian network."
+  ],
+  [
+    "What are the natural language processing tasks supported in the Watson Natural Language Processing library?",
+    "The Watson Natural Language Processing library supports the following natural language processing tasks: language detection, syntax analysis, noun phrase extraction, keyword extraction and ranking, entity extraction, sentiment classification, and tone classification."
+  ],
+  [
+    "What is an IBM Cloud service ID?",
+    "A service ID is a unique identifier that is used to enable an application outside of IBM Cloud access to your IBM Cloud services. Service IDs are not tied to a specific user, and access policies can be assigned to each service ID to ensure that your application has the appropriate access for authenticating with your IBM Cloud services."
+  ],
+  [
+    "What is sentiment analysis?",
+    "Sentiment analysis is the examination of the sentiment or emotion expressed in text, such as determining if a movie review is positive or negative."
+  ],
+  [
+    "How do I create a connection to Microsoft SQL Server?",
+    "To create a connection to Microsoft SQL Server, you will need the following connection details: the database name, hostname or IP address, either the port number or the instance name, username and password, and the SSL certificate (if required by the database server). Additionally, if the server is configured for dynamic ports, you should use the instance name. If the Microsoft SQL Server has been set up in a domain that uses NTLM (New Technology LAN Manager) authentication, you should select the \"Use Active Directory\" option and enter the name of the domain that is associated with the username and password. Finally, for private connectivity, you will need to set up a secure connection if the database is not externalized to the internet (for example, behind a firewall)."
+  ]
+]

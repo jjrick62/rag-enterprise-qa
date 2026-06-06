@@ -13,7 +13,7 @@ from services.query_rewriter import QueryRewriter
 from services.pipeline import RAGPipeline
 
 
-async def test(name, pipe, questions):
+async def run_ablation_case(name, pipe, questions):
     t0 = time.time()
     total_len = 0
     total_src = 0
@@ -87,7 +87,7 @@ async def main():
         .with_generator(DeepSeekGenerator(api_key=config.deepseek_api_key))
         .build()
     )
-    await test("1. MVP (FixedChunker + 纯向量)", p1, questions)
+    await run_ablation_case("1. MVP (FixedChunker + 纯向量)", p1, questions)
 
     # 2. + RecursiveChunker (only change: chunker)
     p2 = (
@@ -99,7 +99,7 @@ async def main():
         .with_generator(DeepSeekGenerator(api_key=config.deepseek_api_key))
         .build()
     )
-    await test("2. + RecursiveChunker", p2, questions)
+    await run_ablation_case("2. + RecursiveChunker", p2, questions)
 
     # 3. + Reranker (add Cross-encoder reranking)
     p3 = (
@@ -112,7 +112,7 @@ async def main():
         .with_reranker(reranker)
         .build()
     )
-    await test("3. + Reranker", p3, questions)
+    await run_ablation_case("3. + Reranker", p3, questions)
 
     # 4. Full Pipeline: Hybrid + Reranker + Query Rewrite
     p4 = (
@@ -130,7 +130,9 @@ async def main():
         .with_rewriter(QueryRewriter(api_key=config.deepseek_api_key))
         .build()
     )
-    await test("4. Full (Hybrid+Reranker+QueryRewrite)", p4, questions)
+    await run_ablation_case(
+        "4. Full (Hybrid+Reranker+QueryRewrite)", p4, questions
+    )
 
     print("-" * 85)
     print("结论: 每个模块对检索质量和回答长度有可测量的增量贡献")

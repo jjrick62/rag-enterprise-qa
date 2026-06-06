@@ -7,11 +7,14 @@
 RRF 的作用是廉价预筛——纯数学运算（O(N)）把 40 个候选砍到 15 个，
 省下 25 次 Reranker Cross-encoder 调用（每次 ~50ms）。
 """
+import logging
 from typing import List, Optional
-import numpy as np
 from rank_bm25 import BM25Okapi
 from services.base import BaseRetriever
 from schemas.chat import Chunk, RetrievalResult
+
+
+logger = logging.getLogger(__name__)
 
 
 class HybridRetriever(BaseRetriever):
@@ -52,8 +55,8 @@ class HybridRetriever(BaseRetriever):
                     )
                     self._bm25_chunks.append(chunk)
                 self._rebuild_bm25()
-        except Exception:
-            pass  # ChromaDB 为空或不可用，BM25 保持空状态
+        except Exception as e:
+            logger.warning("Failed to rebuild BM25 index from ChromaDB: %s", e)
 
     def search(
         self,
@@ -62,14 +65,22 @@ class HybridRetriever(BaseRetriever):
         category_filter: Optional[str] = None,
         query_text: Optional[str] = None,
     ) -> List[RetrievalResult]:
+        candidate_k = max(20, top_k)
+
         # 双路并行召回
         vector_results = self._vector.search(
-            query_embedding, top_k=20, category_filter=category_filter
+            query_embedding,
+            top_k=candidate_k,
+            category_filter=category_filter,
         )
-        bm25_results = self._bm25_search(query_text or "", top_k=20)
+        bm25_results = self._bm25_search(
+            query_text or "",
+            top_k=candidate_k,
+            category_filter=category_filter,
+        )
 
         # RRF 融合
-        merged = self._rrf_merge(vector_results, bm25_results, top_k=15)
+        merged = self._rrf_merge(vector_results, bm25_results, top_k=top_k)
         return merged
 
     def add_embeddings(self, chunks: List[Chunk], embeddings) -> int:
@@ -87,6 +98,12 @@ class HybridRetriever(BaseRetriever):
         self._rebuild_bm25()
         return count
 
+    def clear(self) -> int:
+        count = self._vector.clear()
+        self._bm25_chunks = []
+        self._rebuild_bm25()
+        return count
+
     # ── BM25 ──
 
     def _rebuild_bm25(self):
@@ -98,15 +115,29 @@ class HybridRetriever(BaseRetriever):
         tokenized = [c.content.lower().split() for c in self._bm25_chunks]
         self._bm25 = BM25Okapi(tokenized)
 
-    def _bm25_search(self, query: str, top_k: int) -> List[RetrievalResult]:
+    def _bm25_search(
+        self,
+        query: str,
+        top_k: int,
+        category_filter: Optional[str] = None,
+    ) -> List[RetrievalResult]:
         if not self._bm25 or not query.strip():
             return []
         tokens = query.lower().split()
         scores = self._bm25.get_scores(tokens)
-        # 取 Top-K 索引
         if len(scores) == 0:
             return []
-        indices = np.argsort(scores)[::-1][:top_k]
+
+        eligible_indices = [
+            idx for idx, chunk in enumerate(self._bm25_chunks)
+            if not category_filter or chunk.metadata.category == category_filter
+        ]
+        indices = sorted(
+            eligible_indices,
+            key=lambda idx: scores[idx],
+            reverse=True,
+        )[:top_k]
+
         results = []
         for idx in indices:
             if scores[idx] <= 0:

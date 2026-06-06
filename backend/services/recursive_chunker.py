@@ -140,14 +140,281 @@ class RecursiveChunker(BaseChunker):
             return result
 
         # 没有子节——按句子精切
-        return self._chunk_by_sentences(text, heading_stack)
+        return self._chunk_by_sentences(
+            text,
+            heading_stack,
+            source_doc,
+            category,
+        )
+
+    # ── 伪表格检测与转换 ──
+
+    # 空格对齐伪表的行模式：一行被 ≥2 个连续空格切出 ≥3 个字段
+    _TABLE_ROW_PATTERN = re.compile(r'\s{2,}')
+    _TABLE_TITLE_PATTERN = re.compile(r'^Table\s*\d*:')
+
+    def _detect_table_regions(self, text: str) -> List[dict]:
+        """检测空格对齐伪表格区域
+
+        工业参照：RAG-Architect Table Guard + Unstructured.io element detection。
+        思路：逐行扫描，找到"连续≥3行的双空格多字段行"= 一个表。
+
+        Returns: [{'start_char': int, 'end_char': int, 'lines': [str]}, ...]
+        """
+        lines = text.split('\n')
+        regions: List[dict] = []
+        i = 0
+        while i < len(lines):
+            stripped = lines[i].strip()
+            # 跳过空行和代码块
+            if not stripped or stripped.startswith('```'):
+                i += 1
+                continue
+
+            fields = self._TABLE_ROW_PATTERN.split(stripped)
+            is_title = bool(self._TABLE_TITLE_PATTERN.match(stripped))
+            n_fields = len([f for f in fields if f])  # 非空字段数
+
+            if is_title or n_fields >= 3:
+                start_i = i
+                table_rows: List[str] = []
+
+                # 收集 "Table N:" 标题行
+                if is_title:
+                    table_rows.append(stripped)
+                    i += 1
+                    # 跳过表头后的空行
+                    if i < len(lines) and not lines[i].strip():
+                        i += 1
+
+                # 收数据行：每行 ≥3 字段，遇空行跳过、遇非表行停
+                while i < len(lines):
+                    row = lines[i].strip()
+                    if not row:
+                        i += 1
+                        # 表内允许空行（如列名和首行数据之间的空行），
+                        # 检查下一行是否还是表行，是就继续，不是才结束
+                        if i < len(lines):
+                            next_row = lines[i].strip()
+                            next_fields = [f for f in self._TABLE_ROW_PATTERN.split(next_row) if f]
+                            if len(next_fields) >= 3:
+                                continue  # 跳过空行，继续收表数据
+                        break
+                    row_fields = [f for f in self._TABLE_ROW_PATTERN.split(row) if f]
+                    if len(row_fields) >= 3:
+                        table_rows.append(row)
+                        i += 1
+                    else:
+                        break
+
+                # 有效的表：标题/表头 + ≥2 行数据
+                if len(table_rows) >= 3:
+                    char_start = sum(len(ln) + 1 for ln in lines[:start_i])
+                    char_end = sum(len(ln) + 1 for ln in lines[:i])
+                    regions.append({
+                        'start_char': char_start,
+                        'end_char': char_end,
+                        'lines': table_rows,
+                    })
+                continue  # 跳过 i+=1——while 循环内已推进
+
+            i += 1
+
+        return regions
+
+    def _convert_pseudo_table(self, lines: List[str], title: str = "") -> str:
+        """空格对齐伪表 → 紧凑 key-value 文本
+
+        策略：
+          - 只取前3列（参数名+可选值+默认值），丢弃 URL 列
+          - 注入表标题（如 "Table 1: Tuning parameters"）让 BM25 可命中
+          - 格式：一行一个参数，LLM 和 BM25 都友好
+        """
+        # 分离标题行和数据行
+        title_line = ""
+        data_start = 0
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if self._TABLE_TITLE_PATTERN.match(stripped):
+                title_line = stripped
+                data_start = i + 1
+                break
+
+        rows: List[List[str]] = []
+        for line in lines[data_start:]:
+            fields = [f.strip() for f in self._TABLE_ROW_PATTERN.split(line) if f.strip()]
+            if fields:
+                rows.append(fields)
+
+        if not rows:
+            return '\n'.join(lines)
+
+        col_names = rows[0]
+        result_lines: List[str] = []
+        if title_line:
+            result_lines.append(title_line)
+        elif title:
+            result_lines.append(title)
+
+        for row in rows[1:]:
+            # 只取前3列：参数名、可选值、默认值（跳过 URL）
+            name = row[0] if len(row) > 0 else ''
+            options = row[1] if len(row) > 1 else ''
+            default = row[2] if len(row) > 2 else ''
+            if default:
+                result_lines.append(f'- {name}: {options} (default: {default})')
+            elif options:
+                result_lines.append(f'- {name}: {options}')
+            else:
+                result_lines.append(f'- {name}')
+
+        return '\n'.join(result_lines)
+
+    def _chunk_table(
+        self,
+        table_info: dict,
+        heading_stack: List[str],
+        source_doc: str,
+        category: str,
+    ) -> List['Chunk']:
+        """表转为 chunk——优先整表，超 chunk_size 才按行组拆"""
+        md_table = self._enrich_table_text(
+            self._convert_pseudo_table(table_info['lines']),
+            table_info,
+            heading_stack,
+            source_doc,
+            category,
+        )
+
+        # 表允许 3x 容差——表是单一语义单元，embedding 稀释远低于等长随机文本
+        # 1227 字符的 6 行参数表一个 chunk 装下 > 拆成 6 个碎片
+        if len(md_table) <= max(self.chunk_size * 3, 1500):
+            return [self._make_chunk(md_table, heading_stack)]
+
+        # 大表兜底：按行组拆分，每组带表头
+        header_lines = table_info['lines'][:2]  # "Table N:" + 列名行
+        chunks: List['Chunk'] = []
+        batch = list(header_lines)
+        for row in table_info['lines'][2:]:
+            test = self._enrich_table_text(
+                self._convert_pseudo_table(batch + [row]),
+                table_info,
+                heading_stack,
+                source_doc,
+                category,
+            )
+            if len(test) <= self.chunk_size:
+                batch.append(row)
+            else:
+                chunks.append(self._make_chunk(
+                    self._enrich_table_text(
+                        self._convert_pseudo_table(batch),
+                        table_info,
+                        heading_stack,
+                        source_doc,
+                        category,
+                    ),
+                    heading_stack,
+                ))
+                batch = list(header_lines) + [row]
+        if len(batch) > len(header_lines):
+            chunks.append(self._make_chunk(
+                self._enrich_table_text(
+                    self._convert_pseudo_table(batch),
+                    table_info,
+                    heading_stack,
+                    source_doc,
+                    category,
+                ),
+                heading_stack,
+            ))
+        return chunks
+
+    def _enrich_table_text(
+        self,
+        table_text: str,
+        table_info: dict,
+        heading_stack: List[str],
+        source_doc: str,
+        category: str,
+    ) -> str:
+        """用已有元数据为表格补充稳定、可检索的语义上下文。"""
+        document_title = re.sub(
+            r'\s+',
+            ' ',
+            re.sub(r'\.[^.]+$', '', source_doc).replace('_', ' '),
+        ).strip()
+        category_label = category.replace('_', ' ').strip()
+
+        table_title = ""
+        for line in table_info['lines']:
+            stripped = line.strip()
+            if self._TABLE_TITLE_PATTERN.match(stripped):
+                table_title = self._TABLE_TITLE_PATTERN.sub(
+                    '',
+                    stripped,
+                ).strip()
+                break
+
+        context_lines = [f"Document: {document_title}"]
+        if category_label:
+            context_lines.append(f"Category: {category_label}")
+        if heading_stack:
+            context_lines.append(f"Section: {' > '.join(heading_stack)}")
+        if table_title:
+            context_lines.append(
+                f"Table context: {table_title} from {document_title}"
+            )
+
+        return '\n'.join(context_lines + [table_text])
 
     # ── 句子级精切 ──
 
     def _chunk_by_sentences(
-        self, text: str, heading_stack: List[str],
+        self,
+        text: str,
+        heading_stack: List[str],
+        source_doc: str,
+        category: str,
     ) -> List[Chunk]:
-        """按句子切分，尽量接近 chunk_size 但不截断句子"""
+        """按句子切分，表区域先提取保护，非表部分句子切"""
+        # Step 1: 检测并提取表区域
+        regions = self._detect_table_regions(text)
+
+        if not regions:
+            # 无表——走原句子切分逻辑
+            return self._sentence_chunk(text, heading_stack)
+
+        # 有表——按表区域把文本切成"非表+表+非表..."
+        chunks: List['Chunk'] = []
+        pos = 0
+        for region in regions:
+            # 表之前的非表部分 → 句子切
+            if region['start_char'] > pos:
+                pre = text[pos:region['start_char']].strip()
+                if pre:
+                    chunks.extend(self._sentence_chunk(pre, heading_stack))
+            # 表部分 → 整表保护
+            chunks.extend(self._chunk_table(
+                region,
+                heading_stack,
+                source_doc,
+                category,
+            ))
+            pos = region['end_char']
+
+        # 最后一段非表文本
+        if pos < len(text):
+            post = text[pos:].strip()
+            if post:
+                chunks.extend(self._sentence_chunk(post, heading_stack))
+
+        return chunks
+
+    def _sentence_chunk(
+        self, text: str, heading_stack: List[str],
+    ) -> List['Chunk']:
+        """纯句子切分——原 _chunk_by_sentences 的核心逻辑"""
         sentences = [s.strip() for s in self.SENTENCE_PATTERN.split(text) if s.strip()]
         if not sentences:
             return [self._make_chunk(text, heading_stack)]

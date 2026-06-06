@@ -3,7 +3,6 @@ import os
 import json
 import glob
 import hashlib
-import shutil
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -60,6 +59,12 @@ async def ingest_document(req: IngestRequest):
     - 自动去重：相同文件已摄入则跳过
     - force=True：强制重新摄入（先删旧的再摄入新的）
     """
+    if not os.path.isfile(req.file_path):
+        raise HTTPException(
+            status_code=404,
+            detail=f"文件不存在: {req.file_path}",
+        )
+
     pipeline = _get_pipeline()
     file_name = os.path.basename(req.file_path)
     file_hash_val = _file_hash(req.file_path)
@@ -79,8 +84,11 @@ async def ingest_document(req: IngestRequest):
     if file_name in state["files"]:
         try:
             pipeline._retriever.delete_by_document(file_name)
-        except Exception:
-            pass
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"删除旧文档索引失败: {e}",
+            ) from e
 
     # 摄入
     try:
@@ -164,11 +172,8 @@ async def reingest_all():
     doc_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "documents")
     files = sorted(glob.glob(os.path.join(doc_dir, "*.md")))
 
-    # 清空旧数据
-    shutil.rmtree(
-        os.path.join(os.path.dirname(__file__), "..", "..", "data", "chroma_db"),
-        ignore_errors=True,
-    )
+    # 通过检索器 API 清空 ChromaDB 和内存 BM25，避免删除活动数据库目录。
+    pipeline._retriever.clear()
 
     state = {"files": {}}
     total = 0

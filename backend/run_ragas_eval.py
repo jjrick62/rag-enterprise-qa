@@ -1,4 +1,4 @@
-"""RAGAS 正统评估入口 —— 需在 venv_ragas 中运行
+r"""RAGAS 正统评估入口 —— 需在 venv_ragas 中运行
 
 用法:
   venv_ragas\Scripts\activate
@@ -53,7 +53,7 @@ async def main():
     # ── Generate answers (run pipeline on all questions) ──
     dataset = []
     t0 = time.time()
-    for i, (question, ground_truth) in enumerate(qa_pairs[:20], 1):
+    for i, (question, ground_truth) in enumerate(qa_pairs, 1):
         full = ""; contexts = []
         async for event in pipeline.query(question):
             if event.type == "token": full += event.content
