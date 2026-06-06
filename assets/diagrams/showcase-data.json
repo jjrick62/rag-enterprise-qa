@@ -2,7 +2,7 @@
   "meta": {
     "dataset": "watsonxDocsQA",
     "questions": 30,
-    "current_baseline": "F2",
+    "current_baseline": "v2",
     "generated_at": "2026-06-07"
   },
   "iterations": [
@@ -81,7 +81,7 @@
       "faithfulness": 0.918,
       "answer_relevancy": 0.826,
       "context_precision": 0.844,
-      "status": "current"
+      "status": "formal"
     },
     {
       "id": "F3",
@@ -89,6 +89,13 @@
       "answer_relevancy": 0.780,
       "context_precision": 0.799,
       "status": "formal"
+    },
+    {
+      "id": "v2",
+      "faithfulness": 0.931,
+      "answer_relevancy": 0.857,
+      "context_precision": 0.857,
+      "status": "current"
     }
   ],
   "thresholds": [

@@ -10,15 +10,20 @@ def load_data():
     return json.loads(DATA_PATH.read_text(encoding="utf-8"))
 
 
-def test_f2_is_the_current_baseline_with_expected_scores():
+def test_v2_is_the_current_baseline_with_expected_scores():
     data = load_data()
     f2 = next(item for item in data["iterations"] if item["id"] == "F2")
+    v2 = next(item for item in data["iterations"] if item["id"] == "v2")
     current_iterations = [item for item in data["iterations"] if item["status"] == "current"]
 
-    assert f2["status"] == "current"
+    assert f2["status"] == "formal"
     assert f2["faithfulness"] == 0.918
     assert f2["answer_relevancy"] == 0.826
     assert f2["context_precision"] == 0.844
+    assert v2["status"] == "current"
+    assert v2["faithfulness"] == 0.931
+    assert v2["answer_relevancy"] == 0.857
+    assert v2["context_precision"] == 0.857
     assert len(current_iterations) == 1
     assert data["meta"]["current_baseline"] == current_iterations[0]["id"]
 

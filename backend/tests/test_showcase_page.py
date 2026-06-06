@@ -237,12 +237,12 @@ def test_showcase_footer_displays_repository_url() -> None:
     assert url_link.text == GITHUB_URL
 
 
-def test_showcase_contains_current_f2_metrics() -> None:
+def test_showcase_contains_current_v2_metrics() -> None:
     html = read_showcase()
 
-    assert "0.918" in html
-    assert "0.826" in html
-    assert "0.844" in html
+    assert "0.931" in html
+    assert html.count("0.857") >= 2
+    assert "v2 当前基线" in html
 
 
 def test_showcase_labels_experiment_caveats() -> None:
@@ -353,7 +353,7 @@ def test_showcase_exposes_all_iteration_metrics_accessibly() -> None:
 
     rows = summary.descendants("tbody")[0].descendants("tr")
 
-    assert len(rows) == 12
+    assert len(rows) == 13
     for row in rows:
         cells = row.descendants("td")
         assert len(cells) == 5

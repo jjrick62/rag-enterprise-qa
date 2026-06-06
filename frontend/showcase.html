@@ -826,7 +826,7 @@
     <div class="shell">
       <nav class="hero-nav" aria-label="页面导航">
         <span class="brand">RAG / ENGINEERING REPORT</span>
-        <span class="live-mark">F2 CURRENT BASELINE</span>
+        <span class="live-mark">v2 CURRENT BASELINE</span>
       </nav>
 
       <div class="hero-body">
@@ -841,21 +841,21 @@
         </div>
 
         <div>
-          <div class="hero-stats" aria-label="F2 当前基线指标">
+          <div class="hero-stats" aria-label="v2 当前基线指标">
             <div class="hero-stat">
-              <strong>0.918</strong>
+              <strong>0.931</strong>
               <span>Faithfulness</span>
             </div>
             <div class="hero-stat">
-              <strong>0.826</strong>
+              <strong>0.857</strong>
               <span>Answer Relevancy</span>
             </div>
             <div class="hero-stat">
-              <strong>0.844</strong>
+              <strong>0.857</strong>
               <span>Context Precision</span>
             </div>
           </div>
-          <p class="hero-footnote">30 道 watsonxDocsQA · DeepSeek V4 Pro 生成 · MiMo v2.5 Pro Judge · 完整上下文</p>
+          <p class="hero-footnote">30 道 watsonxDocsQA · DeepSeek V4 Pro 生成 · MiMo v2.5 Pro Judge · 完整上下文 · IBM 标题 fallback</p>
         </div>
       </div>
     </div>
@@ -910,8 +910,9 @@
                 <tr><td>L6</td><td>0.469</td><td>0.808</td><td>0.701</td><td>contaminated</td></tr>
                 <tr><td>F0</td><td>0.874</td><td>0.818</td><td>0.816</td><td>formal</td></tr>
                 <tr><td>F1</td><td>0.901</td><td>0.791</td><td>0.834</td><td>formal</td></tr>
-                <tr><td>F2</td><td>0.918</td><td>0.826</td><td>0.844</td><td>current</td></tr>
+                <tr><td>F2</td><td>0.918</td><td>0.826</td><td>0.844</td><td>formal</td></tr>
                 <tr><td>F3</td><td>0.937</td><td>0.780</td><td>0.799</td><td>formal</td></tr>
+                <tr><td>v2</td><td>0.931</td><td>0.857</td><td>0.857</td><td>current</td></tr>
               </tbody>
             </table>
           </div>
@@ -925,8 +926,8 @@
               <p>以标准答案作为评测对象，仅用于观察 Judge 与数据集的参考上限。</p>
             </div>
             <div class="flag flag-current">
-              <strong>F2 当前基线</strong>
-              <p>完整检索、生成、上下文传递与 Judge 链路下的当前综合最优。</p>
+              <strong>v2 当前基线</strong>
+              <p>IBM 纯文本标题 fallback 重摄入后，三项指标较 F2 全面提升。</p>
             </div>
           </figcaption>
         </figure>
@@ -1146,7 +1147,7 @@
       <a class="footer-url" href="https://github.com/jjrick62/rag-enterprise-qa" target="_blank" rel="noopener noreferrer">https://github.com/jjrick62/rag-enterprise-qa</a>
       <div class="footer-meta">
         <span>RAG ENTERPRISE QA / ENGINEERING SHOWCASE</span>
-        <span>WATSONXDOCSQA · 30 QUESTIONS · F2 BASELINE</span>
+        <span>WATSONXDOCSQA · 30 QUESTIONS · v2 BASELINE</span>
       </div>
     </div>
   </footer>
@@ -1156,7 +1157,7 @@
   "meta": {
     "dataset": "watsonxDocsQA",
     "questions": 30,
-    "current_baseline": "F2",
+    "current_baseline": "v2",
     "generated_at": "2026-06-07"
   },
   "iterations": [
@@ -1235,7 +1236,7 @@
       "faithfulness": 0.918,
       "answer_relevancy": 0.826,
       "context_precision": 0.844,
-      "status": "current"
+      "status": "formal"
     },
     {
       "id": "F3",
@@ -1243,6 +1244,13 @@
       "answer_relevancy": 0.780,
       "context_precision": 0.799,
       "status": "formal"
+    },
+    {
+      "id": "v2",
+      "faithfulness": 0.931,
+      "answer_relevancy": 0.857,
+      "context_precision": 0.857,
+      "status": "current"
     }
   ],
   "thresholds": [
