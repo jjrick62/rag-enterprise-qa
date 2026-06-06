@@ -343,6 +343,12 @@ def test_showcase_exposes_all_iteration_metrics_accessibly() -> None:
         "table",
         lambda node: node.attrs.get("id") == "iteration-data-summary",
     )
+    assert not summary.has_class("visually-hidden")
+    assert summary.parent is not None
+    assert summary.parent.tag != "table"
+    assert summary.parent.has_class("visually-hidden")
+    assert find_one(summary, "caption").text
+
     rows = summary.descendants("tbody")[0].descendants("tr")
 
     assert len(rows) == 12

@@ -842,32 +842,34 @@
           <div class="chart-scroll scroll-region" tabindex="0" aria-label="RAGAS 迭代图，可横向滚动查看全部点位">
             <svg id="ragas-chart" role="img" aria-labelledby="chart-title chart-desc"></svg>
           </div>
-          <table id="iteration-data-summary" class="visually-hidden">
-            <caption>RAGAS 全部迭代点位数据</caption>
-            <thead>
-              <tr>
-                <th>迭代</th>
-                <th>Faithfulness</th>
-                <th>Answer Relevancy</th>
-                <th>Context Precision</th>
-                <th>状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>L0</td><td>0.566</td><td>0.672</td><td>0.560</td><td>historical</td></tr>
-              <tr><td>L1</td><td>0.610</td><td>0.770</td><td>0.550</td><td>historical</td></tr>
-              <tr><td>L2</td><td>0.544</td><td>0.753</td><td>0.865</td><td>historical</td></tr>
-              <tr><td>L3</td><td>0.540</td><td>0.762</td><td>0.614</td><td>historical</td></tr>
-              <tr><td>GT</td><td>0.864</td><td>0.897</td><td>0.911</td><td>upper_bound</td></tr>
-              <tr><td>L4</td><td>0.498</td><td>0.784</td><td>0.730</td><td>contaminated</td></tr>
-              <tr><td>L5</td><td>0.451</td><td>0.791</td><td>0.721</td><td>contaminated</td></tr>
-              <tr><td>L6</td><td>0.469</td><td>0.808</td><td>0.701</td><td>contaminated</td></tr>
-              <tr><td>F0</td><td>0.874</td><td>0.818</td><td>0.816</td><td>formal</td></tr>
-              <tr><td>F1</td><td>0.901</td><td>0.791</td><td>0.834</td><td>formal</td></tr>
-              <tr><td>F2</td><td>0.918</td><td>0.826</td><td>0.844</td><td>current</td></tr>
-              <tr><td>F3</td><td>0.937</td><td>0.780</td><td>0.799</td><td>formal</td></tr>
-            </tbody>
-          </table>
+          <div class="visually-hidden">
+            <table id="iteration-data-summary">
+              <caption>RAGAS 全部迭代点位数据</caption>
+              <thead>
+                <tr>
+                  <th>迭代</th>
+                  <th>Faithfulness</th>
+                  <th>Answer Relevancy</th>
+                  <th>Context Precision</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>L0</td><td>0.566</td><td>0.672</td><td>0.560</td><td>historical</td></tr>
+                <tr><td>L1</td><td>0.610</td><td>0.770</td><td>0.550</td><td>historical</td></tr>
+                <tr><td>L2</td><td>0.544</td><td>0.753</td><td>0.865</td><td>historical</td></tr>
+                <tr><td>L3</td><td>0.540</td><td>0.762</td><td>0.614</td><td>historical</td></tr>
+                <tr><td>GT</td><td>0.864</td><td>0.897</td><td>0.911</td><td>upper_bound</td></tr>
+                <tr><td>L4</td><td>0.498</td><td>0.784</td><td>0.730</td><td>contaminated</td></tr>
+                <tr><td>L5</td><td>0.451</td><td>0.791</td><td>0.721</td><td>contaminated</td></tr>
+                <tr><td>L6</td><td>0.469</td><td>0.808</td><td>0.701</td><td>contaminated</td></tr>
+                <tr><td>F0</td><td>0.874</td><td>0.818</td><td>0.816</td><td>formal</td></tr>
+                <tr><td>F1</td><td>0.901</td><td>0.791</td><td>0.834</td><td>formal</td></tr>
+                <tr><td>F2</td><td>0.918</td><td>0.826</td><td>0.844</td><td>current</td></tr>
+                <tr><td>F3</td><td>0.937</td><td>0.780</td><td>0.799</td><td>formal</td></tr>
+              </tbody>
+            </table>
+          </div>
           <figcaption id="chart-desc" class="chart-flags">
             <div class="flag flag-warn">
               <strong>L4-L6 受截断污染</strong>
