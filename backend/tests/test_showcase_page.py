@@ -228,6 +228,44 @@ def test_showcase_contains_four_capability_quadrants() -> None:
     assert quadrant_titles == ["算法", "后端", "评测", "产品"]
 
 
+def test_showcase_contains_mimo_temperature_experiment() -> None:
+    document = parse_showcase()
+    experiment = find_one(
+        document,
+        "section",
+        lambda node: node.attrs.get("id") == "temperature-experiment",
+    )
+
+    assert "MiMo 温度实验" in experiment.text
+    assert "温度 0.2 综合最优" in experiment.text
+    assert "Thinking" in experiment.text
+
+    rows = [
+        row
+        for row in experiment.descendants("tr")
+        if row.attrs.get("data-temperature-run")
+    ]
+    assert [row.attrs["data-temperature-run"] for row in rows] == [
+        "T00",
+        "T02",
+        "T03",
+        "Thinking",
+    ]
+
+    for value in (
+        "0.946",
+        "0.876",
+        "0.869",
+        "0.897",
+        "0.887",
+        "0.881",
+        "0.927",
+        "0.844",
+        "0.836",
+    ):
+        assert value in experiment.text
+
+
 def test_showcase_footer_displays_repository_url() -> None:
     document = parse_showcase()
     footer = find_one(document, "footer")

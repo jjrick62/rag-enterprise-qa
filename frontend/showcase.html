@@ -362,6 +362,173 @@
     .flag-limit { border-top: 4px solid var(--yellow); }
     .flag-current { border-top: 4px solid var(--acid); }
 
+    .temperature-experiment {
+      margin-top: 92px;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper-strong);
+      box-shadow: 14px 14px 0 rgba(17,21,19,.11);
+      overflow: hidden;
+    }
+
+    .temperature-head {
+      display: grid;
+      grid-template-columns: minmax(270px, .72fr) minmax(0, 1.28fr);
+      border-bottom: 1px solid rgba(250,249,242,.22);
+    }
+
+    .temperature-verdict {
+      display: flex;
+      min-height: 390px;
+      padding: clamp(28px, 5vw, 58px);
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(218,255,80,.16), transparent 35%),
+        var(--ink);
+      border-right: 1px solid rgba(250,249,242,.22);
+    }
+
+    .temperature-verdict .eyebrow { color: var(--acid); }
+
+    .temperature-verdict h3 {
+      max-width: 520px;
+      margin: 18px 0 30px;
+      font-size: clamp(2.25rem, 4.6vw, 4.9rem);
+      line-height: .94;
+      letter-spacing: -.055em;
+    }
+
+    .winning-temperature {
+      display: flex;
+      align-items: end;
+      gap: 18px;
+    }
+
+    .winning-temperature strong {
+      color: var(--acid);
+      font: 500 clamp(5.5rem, 11vw, 10rem)/.72 var(--display);
+      letter-spacing: -.08em;
+    }
+
+    .winning-temperature span {
+      max-width: 150px;
+      padding-bottom: 4px;
+      color: rgba(250,249,242,.62);
+      font: .68rem/1.45 var(--mono);
+      text-transform: uppercase;
+    }
+
+    .temperature-runs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .temperature-run {
+      min-height: 195px;
+      padding: 28px;
+      border-right: 1px solid rgba(250,249,242,.16);
+      border-bottom: 1px solid rgba(250,249,242,.16);
+    }
+
+    .temperature-run:nth-child(even) { border-right: 0; }
+    .temperature-run:nth-child(n+3) { border-bottom: 0; }
+    .temperature-run.winner { background: rgba(218,255,80,.08); }
+
+    .run-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: baseline;
+      margin-bottom: 24px;
+      font: 500 .75rem var(--mono);
+    }
+
+    .run-title strong { font-size: 1rem; }
+    .run-title span { color: rgba(250,249,242,.5); }
+    .temperature-run.winner .run-title span { color: var(--acid); }
+
+    .metric-line {
+      display: grid;
+      grid-template-columns: 62px 1fr 48px;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+      font: .62rem var(--mono);
+    }
+
+    .metric-line > span:first-child { color: rgba(250,249,242,.58); }
+    .metric-line b { text-align: right; font-weight: 500; }
+
+    .metric-track {
+      height: 4px;
+      background: rgba(250,249,242,.13);
+      overflow: hidden;
+    }
+
+    .metric-track i {
+      display: block;
+      width: var(--score);
+      height: 100%;
+      background: var(--metric-color, var(--paper-strong));
+      transform-origin: left;
+    }
+
+    .temperature-notes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background: var(--paper-strong);
+      color: var(--ink);
+    }
+
+    .temperature-note {
+      min-height: 132px;
+      padding: 24px 26px;
+      border-right: 1px solid var(--line);
+    }
+
+    .temperature-note:last-child { border-right: 0; }
+    .temperature-note strong {
+      display: block;
+      margin-bottom: 10px;
+      font: 500 .72rem var(--mono);
+    }
+    .temperature-note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .temperature-data {
+      padding: 0 26px 28px;
+      background: var(--paper-strong);
+      color: var(--ink);
+    }
+
+    .temperature-table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+      font: .7rem var(--mono);
+    }
+
+    .temperature-table caption {
+      padding: 18px 0 12px;
+      text-align: left;
+      color: var(--muted);
+    }
+
+    .temperature-table th,
+    .temperature-table td {
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      text-align: right;
+    }
+
+    .temperature-table th:first-child,
+    .temperature-table td:first-child { text-align: left; }
+    .temperature-table .selected { background: rgba(218,255,80,.35); }
+
     .threshold-layout {
       display: grid;
       grid-template-columns: .7fr 1.3fr;
@@ -762,7 +929,8 @@
     @media (max-width: 980px) {
       .hero-body,
       .section-head,
-      .threshold-layout { grid-template-columns: 1fr; }
+      .threshold-layout,
+      .temperature-head { grid-template-columns: 1fr; }
 
       .hero-body { align-items: center; }
       .hero-stats { grid-template-columns: repeat(3, 1fr); }
@@ -791,9 +959,22 @@
       .chart-panel { padding: 16px 12px 20px; box-shadow: 7px 7px 0 rgba(17,21,19,.06); }
       #ragas-chart { width: 900px; min-height: 378px; }
       .chart-flags,
+      .temperature-runs,
+      .temperature-notes,
       .case-grid,
       .matrix,
       .pipeline { grid-template-columns: 1fr; }
+      .temperature-experiment { margin-top: 70px; box-shadow: 7px 7px 0 rgba(17,21,19,.11); }
+      .temperature-verdict { min-height: 340px; border-right: 0; border-bottom: 1px solid rgba(250,249,242,.22); }
+      .temperature-run,
+      .temperature-run:nth-child(even),
+      .temperature-run:nth-child(n+3) {
+        border-right: 0;
+        border-bottom: 1px solid rgba(250,249,242,.16);
+      }
+      .temperature-run:last-child { border-bottom: 0; }
+      .temperature-note { border-right: 0; border-bottom: 1px solid var(--line); }
+      .temperature-note:last-child { border-bottom: 0; }
       .threshold-layout { gap: 34px; margin-top: 70px; }
       .pipeline-caption,
       .footer-meta { display: block; }
@@ -931,6 +1112,86 @@
             </div>
           </figcaption>
         </figure>
+
+        <section class="temperature-experiment reveal" id="temperature-experiment" aria-labelledby="temperature-title">
+          <div class="temperature-head">
+            <div class="temperature-verdict">
+              <div>
+                <p class="eyebrow">MiMo 温度实验 / 30 QA</p>
+                <h3 id="temperature-title">温度 0.2<br>综合最优</h3>
+                <p class="section-intro">同一批冻结检索上下文，只改变答案生成模式。T02 在 Faithfulness 与三项均值上夺冠，确定性更强的 0.0 和更昂贵的 Thinking 都未形成综合优势。</p>
+              </div>
+              <div class="winning-temperature">
+                <strong>.2</strong>
+                <span>recommended generation temperature</span>
+              </div>
+            </div>
+
+            <div class="temperature-runs" aria-label="四组实验指标可视化">
+              <article class="temperature-run">
+                <div class="run-title"><strong>T00</strong><span>temperature 0.0</span></div>
+                <div class="metric-line"><span>Faith</span><div class="metric-track"><i style="--score:88.6%;--metric-color:#ff5c35"></i></div><b>0.886</b></div>
+                <div class="metric-line"><span>AnsRel</span><div class="metric-track"><i style="--score:88.7%"></i></div><b>0.887</b></div>
+                <div class="metric-line"><span>CtxPrec</span><div class="metric-track"><i style="--score:88.1%;--metric-color:#42d5d2"></i></div><b>0.881</b></div>
+                <div class="metric-line"><span>Mean</span><div class="metric-track"><i style="--score:88.5%;--metric-color:#e6c45d"></i></div><b>0.885</b></div>
+              </article>
+
+              <article class="temperature-run winner">
+                <div class="run-title"><strong>T02</strong><span>recommended</span></div>
+                <div class="metric-line"><span>Faith</span><div class="metric-track"><i style="--score:94.6%;--metric-color:#ff5c35"></i></div><b>0.946</b></div>
+                <div class="metric-line"><span>AnsRel</span><div class="metric-track"><i style="--score:87.6%"></i></div><b>0.876</b></div>
+                <div class="metric-line"><span>CtxPrec</span><div class="metric-track"><i style="--score:86.9%;--metric-color:#42d5d2"></i></div><b>0.869</b></div>
+                <div class="metric-line"><span>Mean</span><div class="metric-track"><i style="--score:89.7%;--metric-color:#daff50"></i></div><b>0.897</b></div>
+              </article>
+
+              <article class="temperature-run">
+                <div class="run-title"><strong>T03</strong><span>temperature 0.3</span></div>
+                <div class="metric-line"><span>Faith</span><div class="metric-track"><i style="--score:91.8%;--metric-color:#ff5c35"></i></div><b>0.918</b></div>
+                <div class="metric-line"><span>AnsRel</span><div class="metric-track"><i style="--score:78.5%"></i></div><b>0.785</b></div>
+                <div class="metric-line"><span>CtxPrec</span><div class="metric-track"><i style="--score:87.5%;--metric-color:#42d5d2"></i></div><b>0.875</b></div>
+                <div class="metric-line"><span>Mean</span><div class="metric-track"><i style="--score:85.9%;--metric-color:#e6c45d"></i></div><b>0.859</b></div>
+              </article>
+
+              <article class="temperature-run">
+                <div class="run-title"><strong>Thinking</strong><span>reasoning enabled</span></div>
+                <div class="metric-line"><span>Faith</span><div class="metric-track"><i style="--score:92.7%;--metric-color:#ff5c35"></i></div><b>0.927</b></div>
+                <div class="metric-line"><span>AnsRel</span><div class="metric-track"><i style="--score:84.4%"></i></div><b>0.844</b></div>
+                <div class="metric-line"><span>CtxPrec</span><div class="metric-track"><i style="--score:83.6%;--metric-color:#42d5d2"></i></div><b>0.836</b></div>
+                <div class="metric-line"><span>Mean</span><div class="metric-track"><i style="--score:86.9%;--metric-color:#e6c45d"></i></div><b>0.869</b></div>
+              </article>
+            </div>
+          </div>
+
+          <div class="temperature-notes">
+            <div class="temperature-note">
+              <strong>FAITHFULNESS WINNER</strong>
+              <p>T02 达到 0.946，比 T00 高 0.060，是企业知识问答最关键的领先项。</p>
+            </div>
+            <div class="temperature-note">
+              <strong>DETERMINISTIC TRADE-OFF</strong>
+              <p>T00 在 Answer Relevancy 与 Context Precision 上各领先约 0.01，但综合均值仍低于 T02。</p>
+            </div>
+            <div class="temperature-note">
+              <strong>THINKING ≠ BETTER</strong>
+              <p>Thinking 组评估更慢，三项均值 0.869，未超过普通非思考模式的温度 0.2。</p>
+            </div>
+          </div>
+
+          <div class="temperature-data scroll-region" tabindex="0" aria-label="MiMo 温度实验完整数据表，可横向滚动">
+            <table class="temperature-table">
+              <caption>MiMo v2.5 Pro / frozen retrieval contexts / MiMo Judge</caption>
+              <thead>
+                <tr><th>组别</th><th>生成模式</th><th>Faithfulness</th><th>Answer Relevancy</th><th>Context Precision</th><th>三项均值</th><th>评估耗时</th></tr>
+              </thead>
+              <tbody>
+                <tr data-temperature-run="T00"><td>T00</td><td>temperature 0.0</td><td>0.886</td><td>0.887</td><td>0.881</td><td>0.885</td><td>24.5 min</td></tr>
+                <tr class="selected" data-temperature-run="T02"><td>T02</td><td>temperature 0.2</td><td>0.946</td><td>0.876</td><td>0.869</td><td>0.897</td><td>24.3 min</td></tr>
+                <tr data-temperature-run="T03"><td>T03</td><td>temperature 0.3</td><td>0.918</td><td>0.785</td><td>0.875</td><td>0.859</td><td>26.8 min</td></tr>
+                <tr data-temperature-run="Thinking"><td>Thinking</td><td>reasoning enabled</td><td>0.927</td><td>0.844</td><td>0.836</td><td>0.869</td><td>26.4 min</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <div class="threshold-layout">
           <div class="threshold-copy reveal">
