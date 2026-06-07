@@ -227,7 +227,7 @@ const Chat = {
   },
 
   _setPipelineState(state) {
-    const stages = [...document.querySelectorAll("#pipeline-trace li")];
+    const stages = [...document.querySelectorAll("#pipeline-trace li[data-stage]")];
     const stageOrder = ["rewrite", "retrieve", "fusion", "rerank", "filter", "generate"];
     const activeIndex = state === "ready" ? -1 : stageOrder.indexOf(state);
     stages.forEach((node, index) => {

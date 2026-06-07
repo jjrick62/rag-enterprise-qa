@@ -72,6 +72,15 @@
               </div>
             </div>
             <div class="chat-input-area">
+              <ol class="compact-trace" id="pipeline-trace">
+                <li data-stage="rewrite"><b>01</b><span>Rewrite</span></li>
+                <li data-stage="retrieve"><b>02</b><span>Retrieve</span></li>
+                <li data-stage="fusion"><b>03</b><span>Fusion</span></li>
+                <li data-stage="rerank"><b>04</b><span>Rerank</span></li>
+                <li data-stage="filter"><b>05</b><span>Filter</span></li>
+                <li data-stage="generate"><b>06</b><span>Answer</span></li>
+                <li class="trace-status"><span id="pipeline-status">READY</span></li>
+              </ol>
               <div class="composer-meta">
                 <span>ASK THE KNOWLEDGE BASE</span>
                 <span>ENTER 发送 · SHIFT+ENTER 换行</span>
@@ -91,17 +100,6 @@
                 <div class="metric-card"><strong>0.857</strong><span>Answer Relevancy</span><i style="--score:85.7%"></i></div>
                 <div class="metric-card"><strong>0.857</strong><span>Context Precision</span><i style="--score:85.7%"></i></div>
               </div>
-            </section>
-            <section class="pipeline-section">
-              <div class="panel-heading"><p class="eyebrow">LIVE RETRIEVAL TRACE</p><span id="pipeline-status">READY</span></div>
-              <ol class="pipeline-trace" id="pipeline-trace">
-                <li data-stage="rewrite"><b>01</b><div><strong>Query Rewrite</strong><span>MiMo v2.5 Pro</span></div></li>
-                <li data-stage="retrieve"><b>02</b><div><strong>Vector + BM25</strong><span>Parallel Top-20</span></div></li>
-                <li data-stage="fusion"><b>03</b><div><strong>RRF Fusion</strong><span>Rank aggregation</span></div></li>
-                <li data-stage="rerank"><b>04</b><div><strong>BGE Rerank</strong><span>Cross-encoder</span></div></li>
-                <li data-stage="filter"><b>05</b><div><strong>Adaptive Filter</strong><span>0.50 abs / 0.75 rel</span></div></li>
-                <li data-stage="generate"><b>06</b><div><strong>LLM Answer</strong><span>Streaming response</span></div></li>
-              </ol>
             </section>
             <section class="evidence-section">
               <div class="panel-heading"><p class="eyebrow">CURRENT EVIDENCE</p><span id="evidence-count">0 SOURCES</span></div>
@@ -145,9 +143,21 @@
           </div>
           <div class="about-grid">
             <section class="about-card about-card-wide">
-              <p class="eyebrow">END-TO-END PIPELINE</p>
-              <div class="about-pipeline">
-                <span>Query Rewrite</span><i>→</i><span>Vector + BM25</span><i>→</i><span>RRF</span><i>→</i><span>BGE Reranker</span><i>→</i><span>Adaptive Filter</span><i>→</i><span>MiMo Answer</span>
+              <div class="system-orbit">
+                <div class="orbit-copy">
+                  <p class="eyebrow">END-TO-END PIPELINE</p>
+                  <h2>Six stages.<br><em>One verifiable answer.</em></h2>
+                  <p>从口语化问题到可追溯答案，检索、融合、重排序和过滤都可被检查。</p>
+                </div>
+                <div class="orbit-map" aria-label="六阶段 RAG 链路">
+                  <div class="orbit-core"><strong>6</strong><span>STAGES</span></div>
+                  <div class="orbit-stage orbit-1" data-orbit-stage="rewrite"><b>01</b><span>Query Rewrite</span></div>
+                  <div class="orbit-stage orbit-2" data-orbit-stage="retrieve"><b>02</b><span>Vector + BM25</span></div>
+                  <div class="orbit-stage orbit-3" data-orbit-stage="fusion"><b>03</b><span>RRF Fusion</span></div>
+                  <div class="orbit-stage orbit-4" data-orbit-stage="rerank"><b>04</b><span>BGE Rerank</span></div>
+                  <div class="orbit-stage orbit-5" data-orbit-stage="filter"><b>05</b><span>Adaptive Filter</span></div>
+                  <div class="orbit-stage orbit-6" data-orbit-stage="generate"><b>06</b><span>LLM Answer</span></div>
+                </div>
               </div>
             </section>
             <section class="about-card"><p class="eyebrow">RETRIEVAL</p><dl><dt>Embedding</dt><dd>bge-small-zh-v1.5</dd><dt>Reranker</dt><dd>bge-reranker-v2-m3</dd><dt>Vector DB</dt><dd>ChromaDB</dd></dl></section>
