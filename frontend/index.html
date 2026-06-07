@@ -1,310 +1,184 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RAG Enterprise QA — 企业知识库智能问答</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Enterprise QA | Trustworthy AI Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-<!-- ═══════════════════ App Shell ═══════════════════ -->
 <div id="app">
-
-  <!-- ── Top Bar ── -->
-  <nav class="topbar">
-    <div class="topbar-logo">
-      <div class="dot" id="status-dot"></div>
-      <h1>RAG Enterprise QA</h1>
+  <header class="topbar">
+    <div class="brand-lockup">
+      <span class="brand-mark">R</span>
+      <div>
+        <div class="brand-name">RAG Enterprise QA</div>
+        <div class="brand-subtitle">Evidence-grounded intelligence</div>
+      </div>
     </div>
-
-    <div class="topbar-tabs">
-      <button class="topbar-tab active" data-tab="chat">
-        <span class="tab-icon">💬</span> 对话
-      </button>
-      <button class="topbar-tab" data-tab="documents">
-        <span class="tab-icon">📄</span> 文档管理
-      </button>
-      <button class="topbar-tab" data-tab="about">
-        <span class="tab-icon">ℹ️</span> 关于
-      </button>
+    <div class="topbar-context">
+      <span class="context-label">WORKSPACE</span>
+      <strong>IBM watsonx Knowledge Base</strong>
     </div>
-
     <div class="topbar-right">
-      <div class="topbar-stat">状态：<span class="val" id="status-text">检查中...</span></div>
-      <div class="topbar-stat">文档：<span class="val">54</span> 篇</div>
-      <div class="topbar-stat">Chunks：<span class="val">~660</span></div>
+      <div class="system-pill"><span class="dot" id="status-dot"></span><span id="status-text">检查中...</span></div>
+      <div class="topbar-stat"><span>DOCS</span><strong>54</strong></div>
+      <div class="topbar-stat"><span>CHUNKS</span><strong>1714</strong></div>
+      <a class="github-link" href="https://github.com/jjrick62/rag-enterprise-qa" target="_blank" rel="noreferrer">GitHub ↗</a>
     </div>
-  </nav>
+  </header>
 
-  <!-- ── Content ── -->
-  <div class="content">
+  <main class="console-shell">
+    <nav class="console-rail" aria-label="主导航">
+      <button class="rail-tab active" data-tab="chat" title="可信问答"><span>01</span><b>QA</b></button>
+      <button class="rail-tab" data-tab="documents" title="文档管理"><span>02</span><b>DOC</b></button>
+      <button class="rail-tab" data-tab="about" title="系统信息"><span>03</span><b>SYS</b></button>
+      <div class="rail-spacer"></div>
+      <div class="rail-version">V2.0</div>
+    </nav>
 
-    <!-- ═══════ Tab: 对话 ═══════ -->
-    <div class="tab-panel active" id="tab-chat">
-      <div class="chat-layout">
+    <section class="content">
+      <div class="tab-panel active" id="tab-chat">
+        <div class="chat-layout">
+          <aside class="chat-sidebar">
+            <div class="sidebar-head">
+              <p class="eyebrow">CONVERSATIONS</p>
+              <button class="btn-new-chat" id="btn-new-chat">+ 新建对话</button>
+            </div>
+            <div class="conversation-list" id="conv-list"></div>
+            <div class="preset-block">
+              <div class="preset-heading">
+                <p class="eyebrow">QUICK QUERIES</p>
+                <span>watsonxDocsQA</span>
+              </div>
+              <div class="preset-list" id="preset-list"></div>
+            </div>
+          </aside>
 
-        <!-- Sidebar -->
-        <aside class="chat-sidebar">
-          <div class="chat-sidebar-section">
-            <button class="btn-new-chat" id="btn-new-chat">＋ 新对话</button>
-          </div>
-          <div class="chat-sidebar-section">
-            <h3>对话历史</h3>
-          </div>
-          <div class="conversation-list" id="conv-list">
-            <!-- JS 动态填充 -->
-          </div>
-          <div class="chat-sidebar-section">
-            <h3>预设问题 — watsonxDocsQA</h3>
-          </div>
-          <div class="preset-list" id="preset-list">
-            <!-- JS 动态填充 -->
-          </div>
-        </aside>
-
-        <!-- Chat Main -->
-        <div class="chat-main">
-          <div class="chat-messages" id="chat-messages">
-            <div class="chat-empty">
-              <div class="chat-empty-icon">🔍</div>
-              <h2>RAG 企业知识库智能问答</h2>
-              <p>基于 54 篇 IBM watsonx 技术文档，支持中英文口语提问，流式回答带引用溯源。<br>选择左侧预设问题或直接输入你的问题。</p>
+          <div class="chat-workspace">
+            <div class="chat-messages" id="chat-messages">
+              <div class="chat-empty">
+                <div class="hero-index">01 / TRUSTWORTHY ANSWERS</div>
+                <h1>Ask the knowledge base.<br><em>Inspect every answer.</em></h1>
+                <p>对 54 篇 IBM watsonx 技术文档执行混合检索、重排序与自适应过滤。每条回答都附带可核验的来源证据。</p>
+                <div class="hero-capabilities">
+                  <span>HYBRID RETRIEVAL</span>
+                  <span>BGE RERANK</span>
+                  <span>STREAMING SSE</span>
+                </div>
+              </div>
+            </div>
+            <div class="chat-input-area">
+              <div class="composer-meta">
+                <span>ASK THE KNOWLEDGE BASE</span>
+                <span>ENTER 发送 · SHIFT+ENTER 换行</span>
+              </div>
+              <div class="composer-row">
+                <textarea id="chat-input" placeholder="例如：What tuning parameters are available for IBM foundation models?" rows="1"></textarea>
+                <button class="btn-send" id="send-btn"><span>发送查询</span><b>↗</b></button>
+              </div>
             </div>
           </div>
-          <div class="chat-input-area">
-            <textarea id="chat-input" placeholder="输入问题，Enter 发送，Shift+Enter 换行..." rows="1"></textarea>
-            <button class="btn-send" id="send-btn">发送</button>
-          </div>
-        </div>
 
+          <aside class="evidence-panel">
+            <section class="signal-section">
+              <div class="panel-heading"><p class="eyebrow">QUALITY SIGNAL</p><span>V2 BASELINE</span></div>
+              <div class="metric-grid">
+                <div class="metric-card"><strong>0.931</strong><span>Faithfulness</span><i style="--score:93.1%"></i></div>
+                <div class="metric-card"><strong>0.857</strong><span>Answer Relevancy</span><i style="--score:85.7%"></i></div>
+                <div class="metric-card"><strong>0.857</strong><span>Context Precision</span><i style="--score:85.7%"></i></div>
+              </div>
+            </section>
+            <section class="pipeline-section">
+              <div class="panel-heading"><p class="eyebrow">LIVE RETRIEVAL TRACE</p><span id="pipeline-status">READY</span></div>
+              <ol class="pipeline-trace" id="pipeline-trace">
+                <li data-stage="rewrite"><b>01</b><div><strong>Query Rewrite</strong><span>MiMo v2.5 Pro</span></div></li>
+                <li data-stage="retrieve"><b>02</b><div><strong>Vector + BM25</strong><span>Parallel Top-20</span></div></li>
+                <li data-stage="fusion"><b>03</b><div><strong>RRF Fusion</strong><span>Rank aggregation</span></div></li>
+                <li data-stage="rerank"><b>04</b><div><strong>BGE Rerank</strong><span>Cross-encoder</span></div></li>
+                <li data-stage="filter"><b>05</b><div><strong>Adaptive Filter</strong><span>0.50 abs / 0.75 rel</span></div></li>
+                <li data-stage="generate"><b>06</b><div><strong>LLM Answer</strong><span>Streaming response</span></div></li>
+              </ol>
+            </section>
+            <section class="evidence-section">
+              <div class="panel-heading"><p class="eyebrow">CURRENT EVIDENCE</p><span id="evidence-count">0 SOURCES</span></div>
+              <div class="evidence-list" id="evidence-list">
+                <div class="evidence-empty">运行一次查询后，这里会显示当前回答使用的文档、章节与相关度。</div>
+              </div>
+            </section>
+          </aside>
+        </div>
       </div>
-    </div>
 
-    <!-- ═══════ Tab: 文档管理 ═══════ -->
-    <div class="tab-panel" id="tab-documents">
-      <div class="doc-layout">
-
-        <!-- 统计卡片 -->
-        <div class="doc-stats">
-          <div class="doc-stat-card">
-            <div class="stat-value" id="doc-stat-total">—</div>
-            <div class="stat-label">文档总数</div>
+      <div class="tab-panel" id="tab-documents">
+        <div class="page-layout doc-layout">
+          <div class="page-header">
+            <div><p class="eyebrow">KNOWLEDGE OPERATIONS</p><h1>Document control room.</h1></div>
+            <div class="doc-actions">
+              <button class="btn primary" id="btn-upload">摄入文档</button>
+              <button class="btn danger" id="btn-reingest">全量重摄入</button>
+            </div>
           </div>
-          <div class="doc-stat-card">
-            <div class="stat-value" id="doc-stat-ingested">—</div>
-            <div class="stat-label">已摄入</div>
+          <div class="doc-stats">
+            <div class="doc-stat-card"><span>TOTAL DOCS</span><strong id="doc-stat-total">—</strong></div>
+            <div class="doc-stat-card"><span>INGESTED</span><strong id="doc-stat-ingested">—</strong></div>
+            <div class="doc-stat-card"><span>CHUNKS</span><strong id="doc-stat-chunks">—</strong></div>
+            <div class="doc-stat-card"><span>LAST INGESTION</span><strong id="doc-stat-last">—</strong></div>
           </div>
-          <div class="doc-stat-card">
-            <div class="stat-value" id="doc-stat-chunks">—</div>
-            <div class="stat-label">总 Chunks</div>
-          </div>
-          <div class="doc-stat-card">
-            <div class="stat-value" id="doc-stat-last" style="font-size:14px;">—</div>
-            <div class="stat-label">最近摄入时间</div>
+          <div class="doc-table-wrap" id="doc-table-wrap">
+            <table class="doc-table">
+              <thead><tr><th>文档名称</th><th>分类</th><th>Chunks</th><th>状态</th><th>摄入时间</th><th>操作</th></tr></thead>
+              <tbody id="doc-table-body"></tbody>
+            </table>
           </div>
         </div>
-
-        <!-- 操作按钮 -->
-        <div class="doc-actions">
-          <button class="btn primary" id="btn-upload">📥 摄入文档</button>
-          <button class="btn danger" id="btn-reingest">🔄 全量重摄入</button>
-          <span style="margin-left:auto;font-size:11px;color:var(--text-dim);">
-            提示：新文档需先放入 data/documents/ 目录，再点击"摄入文档"指定路径
-          </span>
-        </div>
-
-        <!-- 文档表格 -->
-        <div class="doc-table-wrap" id="doc-table-wrap">
-          <table class="doc-table">
-            <thead>
-              <tr>
-                <th>文档名称</th>
-                <th>分类</th>
-                <th>Chunks</th>
-                <th>状态</th>
-                <th>摄入时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="doc-table-body">
-              <!-- JS 动态填充 -->
-            </tbody>
-          </table>
-        </div>
-
       </div>
-    </div>
 
-    <!-- ═══════ Tab: 关于 ═══════ -->
-    <div class="tab-panel" id="tab-about">
-      <div class="about-layout">
-
-        <!-- Pipeline -->
-        <div class="about-section">
-          <h2><span class="section-icon">⚙️</span> 系统链路</h2>
-          <div class="pipeline-flow">
-            <div class="pipeline-step">
-              <div class="step-name">Query Rewrite</div>
-              <div class="step-detail">LLM 中→英改写</div>
-            </div>
-            <span class="pipeline-arrow">→</span>
-            <div class="pipeline-step">
-              <div class="step-name">Vector + BM25</div>
-              <div class="step-detail">各召回 Top-20</div>
-            </div>
-            <span class="pipeline-arrow">→</span>
-            <div class="pipeline-step">
-              <div class="step-name">RRF 融合</div>
-              <div class="step-detail">Reciprocal Rank Fusion</div>
-            </div>
-            <span class="pipeline-arrow">→</span>
-            <div class="pipeline-step">
-              <div class="step-name">BGE Reranker</div>
-              <div class="step-detail">bge-reranker-v2-m3</div>
-            </div>
-            <span class="pipeline-arrow">→</span>
-            <div class="pipeline-step">
-              <div class="step-name">自适应过滤</div>
-              <div class="step-detail">abs≥0.50 + R0.75</div>
-            </div>
-            <span class="pipeline-arrow">→</span>
-            <div class="pipeline-step">
-              <div class="step-name">LLM 生成</div>
-              <div class="step-detail">DeepSeek Chat 流式</div>
-            </div>
-            <span class="pipeline-arrow">→</span>
-            <div class="pipeline-step">
-              <div class="step-name">引用溯源</div>
-              <div class="step-detail">来源文档+分数</div>
-            </div>
+      <div class="tab-panel" id="tab-about">
+        <div class="page-layout about-layout">
+          <div class="page-header">
+            <div><p class="eyebrow">SYSTEM DOSSIER</p><h1>Built for answers<br>that can be audited.</h1></div>
+            <a class="btn primary" href="showcase.html">打开项目展示 ↗</a>
+          </div>
+          <div class="about-grid">
+            <section class="about-card about-card-wide">
+              <p class="eyebrow">END-TO-END PIPELINE</p>
+              <div class="about-pipeline">
+                <span>Query Rewrite</span><i>→</i><span>Vector + BM25</span><i>→</i><span>RRF</span><i>→</i><span>BGE Reranker</span><i>→</i><span>Adaptive Filter</span><i>→</i><span>MiMo Answer</span>
+              </div>
+            </section>
+            <section class="about-card"><p class="eyebrow">RETRIEVAL</p><dl><dt>Embedding</dt><dd>bge-small-zh-v1.5</dd><dt>Reranker</dt><dd>bge-reranker-v2-m3</dd><dt>Vector DB</dt><dd>ChromaDB</dd></dl></section>
+            <section class="about-card"><p class="eyebrow">FILTER POLICY</p><dl><dt>Absolute</dt><dd>0.50</dd><dt>Relative</dt><dd>0.75</dd><dt>Keep</dt><dd>Top 3–5</dd></dl></section>
+            <section class="about-card"><p class="eyebrow">MODEL CHAIN</p><dl><dt>Rewrite</dt><dd>MiMo v2.5 Pro</dd><dt>Generate</dt><dd>MiMo v2.5 Pro</dd><dt>Judge</dt><dd>MiMo thinking</dd></dl></section>
           </div>
         </div>
-
-        <!-- RAGAS Scores -->
-        <div class="about-section">
-          <h2><span class="section-icon">📊</span> RAGAS 评估结果</h2>
-          <table class="config-table">
-            <tr>
-              <td>Faithfulness</td>
-              <td style="color:var(--green);font-size:18px;">0.918</td>
-              <td style="font-size:11px;color:var(--text-dim);">企业标准 ≥0.80 ✓</td>
-            </tr>
-            <tr>
-              <td>Answer Relevancy</td>
-              <td style="color:var(--green);font-size:18px;">0.826</td>
-              <td style="font-size:11px;color:var(--text-dim);">企业标准 ≥0.70 ✓</td>
-            </tr>
-            <tr>
-              <td>Context Precision</td>
-              <td style="color:var(--green);font-size:18px;">0.844</td>
-              <td style="font-size:11px;color:var(--text-dim);">企业标准 ≥0.80 ✓</td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- 核心配置 -->
-        <div class="about-section">
-          <h2><span class="section-icon">🔧</span> 核心配置</h2>
-          <table class="config-table">
-            <tr><td>Embedding 模型</td><td>BAAI/bge-small-zh-v1.5 (512d)</td></tr>
-            <tr><td>Reranker</td><td>BAAI/bge-reranker-v2-m3</td></tr>
-            <tr><td>Chunk 策略</td><td>500 chars / 15% overlap / 表格原子化</td></tr>
-            <tr><td>向量数据库</td><td>ChromaDB 本地持久化</td></tr>
-            <tr><td>关键词检索</td><td>BM25 (内存索引，启动时从 ChromaDB 重建)</td></tr>
-            <tr><td>在线 LLM</td><td>DeepSeek Chat (Temperature 0.3)</td></tr>
-            <tr><td>评估 LLM</td><td>DeepSeek V4 Pro</td></tr>
-            <tr><td>RAGAS Judge</td><td>MiMo v2.5 Pro (thinking enabled)</td></tr>
-            <tr><td>绝对阈值</td><td>min_score = 0.50</td></tr>
-            <tr><td>每文档上限</td><td>max 4 chunks</td></tr>
-            <tr><td>相对阈值</td><td>adaptive_cutoff_ratio = 0.75</td></tr>
-            <tr><td>相对过滤保底</td><td>keep at least 3</td></tr>
-          </table>
-        </div>
-
-        <!-- 快速链接 -->
-        <div class="about-section">
-          <h2><span class="section-icon">🔗</span> 文档入口</h2>
-          <table class="config-table">
-            <tr><td>完整评估报告</td><td><a href="https://github.com/jjrick62/rag-enterprise-qa/blob/main/ragabilitytest.md" target="_blank" style="color:var(--blue);">ragabilitytest.md</a></td></tr>
-            <tr><td>迭代记录</td><td><a href="https://github.com/jjrick62/rag-enterprise-qa/blob/main/14.06claude%E5%86%99%E8%BF%99%E9%87%8C/%E8%BF%AD%E4%BB%A3%E8%AE%B0%E5%BD%95_%E5%85%A8%E9%87%8FRAGAS%E5%88%86%E6%95%B0.md" target="_blank" style="color:var(--blue);">迭代记录_全量RAGAS分数.md</a></td></tr>
-            <tr><td>测试</td><td><code style="color:var(--accent);">pytest -q tests/ablation_test.py</code> → 48 passed</td></tr>
-            <tr><td>启动命令</td><td><code style="color:var(--accent);">uvicorn main:app --host 0.0.0.0 --port 8000</code></td></tr>
-          </table>
-        </div>
-
       </div>
-    </div>
-
-  </div><!-- /content -->
-</div><!-- /app -->
-
-<!-- ═══════════════════ 摄入文档 Modal ═══════════════════ -->
-<div class="modal-overlay" id="ingest-modal">
-  <div class="modal">
-    <h3>📥 摄入文档到知识库</h3>
-    <div class="form-group">
-      <label>文件路径（服务器绝对路径）</label>
-      <input type="text" id="ingest-path"
-        placeholder="D:\大学作业文件夹\自制软件\rag-enterprise-qa\data\documents\example.md">
-      <div class="form-hint">请先将 .md 文件放入 data/documents/ 目录</div>
-    </div>
-    <div class="form-group">
-      <label>分类</label>
-      <select id="ingest-category">
-        <option value="IBM_Docs">IBM_Docs</option>
-        <option value="General">General</option>
-        <option value="Technical">Technical</option>
-        <option value="Tutorial">Tutorial</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <div class="form-check">
-        <input type="checkbox" id="ingest-force">
-        <label for="ingest-force">强制重新摄入（覆盖已存在的）</label>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn" id="ingest-modal-cancel">取消</button>
-      <button class="btn primary" id="ingest-modal-confirm">确认摄入</button>
-    </div>
-  </div>
+    </section>
+  </main>
 </div>
 
-<!-- Toast Container -->
+<div class="modal-overlay" id="ingest-modal">
+  <div class="modal">
+    <p class="eyebrow">KNOWLEDGE INGESTION</p>
+    <h3>摄入文档到知识库</h3>
+    <div class="form-group"><label>文件绝对路径</label><input type="text" id="ingest-path" placeholder="D:\...\data\documents\example.md"><div class="form-hint">请先将 .md 文件放入 data/documents/ 目录</div></div>
+    <div class="form-group"><label>分类</label><select id="ingest-category"><option value="IBM_Docs">IBM_Docs</option><option value="General">General</option><option value="Technical">Technical</option><option value="Tutorial">Tutorial</option></select></div>
+    <div class="form-check"><input type="checkbox" id="ingest-force"><label for="ingest-force">强制重新摄入</label></div>
+    <div class="modal-actions"><button class="btn" id="ingest-modal-cancel">取消</button><button class="btn primary" id="ingest-modal-confirm">确认摄入</button></div>
+  </div>
+</div>
 <div class="toast-container" id="toast-container"></div>
 
-<!-- ═══════════════════ Scripts ═══════════════════ -->
-<!-- 依赖顺序很重要：utils → api → markdown → chat → documents → app -->
 <script src="js/utils.js"></script>
 <script src="js/api.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script>
-  // marked.js 加载后立即初始化
-  if (typeof marked !== 'undefined') {
-    marked.setOptions({ breaks: true, gfm: true });
-  }
-  // 页面入场：级联渐显
-  document.addEventListener('DOMContentLoaded', () => {
-    const els = document.querySelectorAll('.topbar, .chat-sidebar, .chat-messages, .chat-input-area');
-    els.forEach((el, i) => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(12px)';
-      el.style.transition = 'opacity 0.5s ease, transform 0.5s cubic-bezier(0.4,0,0.2,1)';
-      setTimeout(() => {
-        el.style.opacity = '1';
-        el.style.transform = 'translateY(0)';
-      }, 80 + i * 70);
-    });
-  });
-</script>
+<script>if (typeof marked !== "undefined") marked.setOptions({ breaks: true, gfm: true });</script>
 <script src="js/markdown.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/documents.js"></script>
 <script src="js/app.js"></script>
-
 </body>
 </html>

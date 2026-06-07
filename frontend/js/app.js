@@ -26,7 +26,7 @@ const App = {
 
   /** ── 标签切换 ── */
   _bindTabs() {
-    document.querySelectorAll('.topbar-tab').forEach(tab => {
+    document.querySelectorAll('.rail-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         this.switchTab(tab.dataset.tab);
       });
@@ -36,7 +36,7 @@ const App = {
   /** ── 切换到指定标签 ── */
   switchTab(name) {
     // 更新标签高亮
-    document.querySelectorAll('.topbar-tab').forEach(t => {
+    document.querySelectorAll('.rail-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === name);
     });
     // 切换面板

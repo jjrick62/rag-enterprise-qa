@@ -1,410 +1,336 @@
-/* ═══════════════════════════════════════════
-   Chat — 对话界面、SSE 流、多轮会话管理
-   依赖: Utils, API, Markdown
-   ═══════════════════════════════════════════ */
-
 const Chat = {
-  /** 当前活跃的会话 ID */
-  activeSession: 'default',
-
-  /** 本地会话存储（key → {id, title, createdAt, messages[]}） */
+  activeSession: "default",
   sessions: {},
-
-  /** 是否正在生成 */
   streaming: false,
-
-  /** DOM 引用（init 时填充） */
   el: {},
+  _storageKey: "rag_qa_conversations",
 
-  /** ── 预设问题 ── */
   PRESETS: [
-    { q: 'What foundation models are available in watsonx.ai ?', tag: 'models' },
-    { q: 'What tuning parameters are available for IBM foundation models?', tag: 'tuning' },
-    { q: 'What are tokens and tokenization?', tag: 'basics' },
-    { q: 'What is the workflow for a Federated Learning experiment?', tag: 'fedlearn' },
-    { q: 'What is the retrieval-augmented generation pattern?', tag: 'rag' },
-    { q: 'How do I delete a deployment using the Python client?', tag: 'deploy' },
-    { q: 'What is "greedy decoding"?', tag: 'decoding' },
-    { q: 'How to build reusable prompts?', tag: 'prompts' },
-    { q: 'What is the "random seed" parameter?', tag: 'tuning' },
-    { q: '有哪些基础模型可以用？', tag: 'CN→EN' },
-    { q: '联邦学习咋回事？', tag: 'CN→EN' },
-    { q: '怎么部署模型？', tag: 'CN→EN' },
-    { q: '数据库怎么连？', tag: 'CN→EN' },
-    { q: 'How do I create a connection to Microsoft SQL Server?', tag: 'db' },
-    { q: 'What are the key functions of the geospatial library?', tag: 'geo' },
+    { q: "What foundation models are available in watsonx.ai?", tag: "MODELS" },
+    { q: "What tuning parameters are available for IBM foundation models?", tag: "TUNING" },
+    { q: "What are tokens and tokenization?", tag: "BASICS" },
+    { q: "What is the workflow for a Federated Learning experiment?", tag: "FEDLEARN" },
+    { q: "What is the retrieval-augmented generation pattern?", tag: "RAG" },
+    { q: "How do I delete a deployment using the Python client?", tag: "DEPLOY" },
+    { q: "有哪些基础模型可以使用？", tag: "CN→EN" },
+    { q: "联邦学习是怎么回事？", tag: "CN→EN" },
   ],
 
-  /** ── 初始化 ── */
   init() {
-    // 引用 DOM 节点
     this.el = {
-      convList: document.getElementById('conv-list'),
-      presetList: document.getElementById('preset-list'),
-      chatMessages: document.getElementById('chat-messages'),
-      chatInput: document.getElementById('chat-input'),
-      sendBtn: document.getElementById('send-btn'),
+      convList: document.getElementById("conv-list"),
+      presetList: document.getElementById("preset-list"),
+      chatMessages: document.getElementById("chat-messages"),
+      chatInput: document.getElementById("chat-input"),
+      sendBtn: document.getElementById("send-btn"),
+      evidenceList: document.getElementById("evidence-list"),
+      evidenceCount: document.getElementById("evidence-count"),
+      pipelineStatus: document.getElementById("pipeline-status"),
     };
-
-    // 加载本地会话
     this._loadSessions();
-    // 渲染预设
     this._renderPresets();
-    // 渲染会话列表
     this._renderConvList();
-    // 切换到上次活跃会话或 default
     this._restoreActiveSession();
-    // 事件绑定
     this._bindEvents();
-
-    // 如果 marked 已经可用马上初始化
+    this._setPipelineState("ready");
     Markdown.init();
   },
 
-  /** ── 本地存储操作 ── */
-  _storageKey: 'rag_qa_conversations',
-
   _loadSessions() {
     try {
-      const raw = localStorage.getItem(this._storageKey);
-      this.sessions = raw ? JSON.parse(raw) : {};
+      this.sessions = JSON.parse(localStorage.getItem(this._storageKey) || "{}");
     } catch {
       this.sessions = {};
     }
   },
 
   _saveSessions() {
-    try {
-      // 只保留最近 30 个会话
-      const keys = Object.keys(this.sessions);
-      if (keys.length > 30) {
-        keys.sort((a, b) =>
-          (this.sessions[b].createdAt || 0) - (this.sessions[a].createdAt || 0)
-        );
-        const toDelete = keys.slice(30);
-        toDelete.forEach(k => delete this.sessions[k]);
-      }
-      localStorage.setItem(this._storageKey, JSON.stringify(this.sessions));
-    } catch (e) {
-      console.warn('[Chat] localStorage 写入失败', e);
+    const ids = Object.keys(this.sessions);
+    if (ids.length > 30) {
+      ids.sort((a, b) => (this.sessions[b].createdAt || "").localeCompare(this.sessions[a].createdAt || ""));
+      ids.slice(30).forEach(id => delete this.sessions[id]);
     }
+    localStorage.setItem(this._storageKey, JSON.stringify(this.sessions));
   },
 
-  /** ── 渲染预设问题 ── */
   _renderPresets() {
-    this.el.presetList.innerHTML = '';
-    this.PRESETS.forEach(p => {
-      const chip = document.createElement('button');
-      chip.className = 'preset-chip';
-      chip.innerHTML = `<span class="preset-tag">${p.tag}</span>${Utils.escapeHtml(p.q)}`;
-      chip.addEventListener('click', () => {
-        this.el.chatInput.value = p.q;
+    this.el.presetList.innerHTML = "";
+    this.PRESETS.forEach(item => {
+      const button = document.createElement("button");
+      button.className = "preset-chip";
+      button.innerHTML = `<span class="preset-tag">${item.tag}</span>${Utils.escapeHtml(item.q)}`;
+      button.addEventListener("click", () => {
+        this.el.chatInput.value = item.q;
         this._send();
       });
-      this.el.presetList.appendChild(chip);
+      this.el.presetList.appendChild(button);
     });
   },
 
-  /** ── 渲染会话列表 ── */
   _renderConvList() {
-    this.el.convList.innerHTML = '';
-    const ids = Object.keys(this.sessions).sort(
-      (a, b) => (this.sessions[b].createdAt || 0) - (this.sessions[a].createdAt || 0)
-    );
-
-    ids.forEach(id => {
-      const s = this.sessions[id];
-      const item = document.createElement('button');
-      item.className = 'conv-item' + (id === this.activeSession ? ' active' : '');
-      item.innerHTML = `
-        <span class="conv-title">${Utils.escapeHtml(s.title || '新对话')}</span>
-        <span class="conv-delete" data-id="${id}" title="删除">✕</span>
-      `;
-      item.addEventListener('click', (e) => {
-        if (e.target.classList.contains('conv-delete')) {
-          e.stopPropagation();
-          this._deleteSession(id);
-        } else {
+    this.el.convList.innerHTML = "";
+    Object.keys(this.sessions)
+      .sort((a, b) => (this.sessions[b].createdAt || "").localeCompare(this.sessions[a].createdAt || ""))
+      .forEach(id => {
+        const session = this.sessions[id];
+        const button = document.createElement("button");
+        button.className = `conv-item${id === this.activeSession ? " active" : ""}`;
+        button.innerHTML = `<span class="conv-title">${Utils.escapeHtml(session.title || "新对话")}</span><span class="conv-delete" data-id="${id}" title="删除">×</span>`;
+        button.addEventListener("click", event => {
+          if (event.target.classList.contains("conv-delete")) {
+            event.stopPropagation();
+            this._deleteSession(id);
+            return;
+          }
           this.switchSession(id);
-        }
+        });
+        this.el.convList.appendChild(button);
       });
-      this.el.convList.appendChild(item);
-    });
   },
 
-  /** ── 恢复上次活跃会话 ── */
   _restoreActiveSession() {
-    // 优先恢复上次活跃的
-    const lastActive = localStorage.getItem('rag_qa_active_session');
-    if (lastActive && this.sessions[lastActive]) {
-      this.switchSession(lastActive, false);
-    } else if (Object.keys(this.sessions).length > 0) {
-      const first = Object.keys(this.sessions).sort(
-        (a, b) => (this.sessions[b].createdAt || 0) - (this.sessions[a].createdAt || 0)
-      )[0];
-      this.switchSession(first, false);
-    } else {
-      this._showEmptyState();
+    const last = localStorage.getItem("rag_qa_active_session");
+    if (last && this.sessions[last]) {
+      this.switchSession(last, false);
+      return;
     }
+    const newest = Object.keys(this.sessions).sort(
+      (a, b) => (this.sessions[b].createdAt || "").localeCompare(this.sessions[a].createdAt || "")
+    )[0];
+    if (newest) this.switchSession(newest, false);
+    else this._showEmptyState();
   },
 
-  /** ── 事件绑定 ── */
   _bindEvents() {
-    // 新建对话
-    document.getElementById('btn-new-chat').addEventListener('click', () => this.newSession());
-    // 发送
-    this.el.sendBtn.addEventListener('click', () => this._send());
-    // Enter 发送、Shift+Enter 换行
-    this.el.chatInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
+    document.getElementById("btn-new-chat").addEventListener("click", () => this.newSession());
+    this.el.sendBtn.addEventListener("click", () => this._send());
+    this.el.chatInput.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
         this._send();
       }
     });
-    // 自动 resize
-    this.el.chatInput.addEventListener('input', () => {
-      this.el.chatInput.style.height = 'auto';
-      this.el.chatInput.style.height = Math.min(this.el.chatInput.scrollHeight, 120) + 'px';
+    this.el.chatInput.addEventListener("input", () => {
+      this.el.chatInput.style.height = "auto";
+      this.el.chatInput.style.height = `${Math.min(this.el.chatInput.scrollHeight, 120)}px`;
     });
   },
 
-  /** ── 新建会话 ── */
   newSession() {
     const id = Utils.uuid();
-    this.sessions[id] = {
-      id,
-      title: '新对话',
-      createdAt: new Date().toISOString(),
-      messages: [],
-    };
+    this.sessions[id] = { id, title: "新对话", createdAt: new Date().toISOString(), messages: [] };
     this._saveSessions();
     this.switchSession(id);
   },
 
-  /** ── 切换会话 ── */
   switchSession(id, saveActive = true) {
     this.activeSession = id;
-    if (saveActive) localStorage.setItem('rag_qa_active_session', id);
+    if (saveActive) localStorage.setItem("rag_qa_active_session", id);
     this._renderConvList();
     this._renderMessages();
     this.el.chatInput.focus();
   },
 
-  /** ── 删除会话 ── */
   _deleteSession(id) {
-    if (!confirm('确定删除这个对话？')) return;
+    if (!confirm("确定删除这个对话？")) return;
     API.clearSession(id).catch(() => {});
     delete this.sessions[id];
     this._saveSessions();
+    const remaining = Object.keys(this.sessions);
     if (this.activeSession === id) {
-      const remaining = Object.keys(this.sessions);
-      if (remaining.length > 0) {
-        this.switchSession(remaining[0]);
-      } else {
-        this.activeSession = 'default';
-        localStorage.removeItem('rag_qa_active_session');
-        this._showEmptyState();
-      }
+      this.activeSession = remaining[0] || "default";
+      if (remaining[0]) this.switchSession(remaining[0]);
+      else this._showEmptyState();
     }
     this._renderConvList();
   },
 
-  /** ── 渲染当前会话的消息 ── */
   _renderMessages() {
-    this.el.chatMessages.innerHTML = '';
+    this.el.chatMessages.innerHTML = "";
     const session = this.sessions[this.activeSession];
-    if (!session || session.messages.length === 0) {
+    if (!session || !session.messages.length) {
       this._showEmptyState();
+      this._renderEvidencePanel([]);
       return;
     }
-    session.messages.forEach((msg, i) => {
-      if (msg.role === 'user') {
-        this._addUserBubble(msg.content);
+    session.messages.forEach(message => {
+      if (message.role === "user") {
+        this._addUserBubble(message.content);
       } else {
-        const { div, bubble } = this._addAssistantBubble();
-        bubble.innerHTML = Markdown.render(msg.content);
-        if (msg.sources && msg.sources.length > 0) {
-          div.appendChild(this._buildSourcesEl(msg.sources));
+        const { div, bubble } = this._addAssistantBubble(false);
+        bubble.innerHTML = Markdown.render(message.content);
+        if (message.sources?.length) {
+          div.appendChild(this._buildSourcesEl(message.sources));
+          this._renderEvidencePanel(message.sources);
         }
       }
     });
     this._scrollBottom();
   },
 
-  /** ── 显示空状态 ── */
   _showEmptyState() {
     this.el.chatMessages.innerHTML = `
       <div class="chat-empty">
-        <div class="chat-empty-icon">🔍</div>
-        <h2>RAG 企业知识库智能问答</h2>
-        <p>基于 54 篇 IBM watsonx 技术文档，支持中英文口语提问。
-        选择左侧预设问题或直接输入你的问题。</p>
-      </div>
-    `;
+        <div class="hero-index">01 / TRUSTWORTHY ANSWERS</div>
+        <h1>Ask the knowledge base.<br><em>Inspect every answer.</em></h1>
+        <p>对 54 篇 IBM watsonx 技术文档执行混合检索、重排序与自适应过滤。每条回答都附带可核验的来源证据。</p>
+        <div class="hero-capabilities"><span>HYBRID RETRIEVAL</span><span>BGE RERANK</span><span>STREAMING SSE</span></div>
+      </div>`;
   },
 
-  /** ── 添加用户气泡 ── */
   _addUserBubble(text) {
-    const div = document.createElement('div');
-    div.className = 'msg user';
+    const div = document.createElement("div");
+    div.className = "msg user";
     div.innerHTML = `<div class="bubble">${Utils.escapeHtml(text)}</div>`;
     this.el.chatMessages.appendChild(div);
     this._scrollBottom();
   },
 
-  /** ── 添加 Assistant 气泡（含 typing cursor） ── */
-  _addAssistantBubble() {
-    const div = document.createElement('div');
-    div.className = 'msg assistant';
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    const cursor = document.createElement('span');
-    cursor.className = 'typing-cursor';
-    bubble.appendChild(cursor);
+  _addAssistantBubble(withCursor = true) {
+    const div = document.createElement("div");
+    div.className = "msg assistant";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    let cursor = null;
+    if (withCursor) {
+      cursor = document.createElement("span");
+      cursor.className = "typing-cursor";
+      bubble.appendChild(cursor);
+    }
     div.appendChild(bubble);
     this.el.chatMessages.appendChild(div);
     this._scrollBottom();
     return { div, bubble, cursor };
   },
 
-  /** ── 构建来源引用卡片 ── */
   _buildSourcesEl(sources) {
-    const section = document.createElement('div');
-    section.className = 'sources-section';
-    section.innerHTML = '<div class="sources-label">📎 引用来源</div>';
-
-    const grid = document.createElement('div');
-    grid.className = 'sources-grid';
-
-    sources.forEach(s => {
-      const pct = Utils.pct(s.score || 0);
-      const card = document.createElement('div');
-      card.className = 'src-card';
-      card.title = (s.excerpt || '').slice(0, 300);
-      const docName = s.documentName || 'Unknown';
-      const downloadUrl = `${API.BASE}/api/documents/download/${encodeURIComponent(docName)}`;
+    const section = document.createElement("div");
+    section.className = "sources-section";
+    section.innerHTML = '<div class="sources-label">CITED EVIDENCE</div>';
+    const grid = document.createElement("div");
+    grid.className = "sources-grid";
+    sources.forEach(source => {
+      const score = Utils.pct(source.score || 0);
+      const name = source.documentName || "Unknown";
+      const card = document.createElement("div");
+      card.className = "src-card";
       card.innerHTML = `
-        <div class="src-name">${Utils.escapeHtml(docName.replace('.md','').replace(/_/g,' ').slice(0, 50))}</div>
-        <div class="src-meta">
-          <span>${Utils.escapeHtml(Utils.truncate(s.heading || '', 30) || '(no heading)')}</span>
-          <b style="color:var(--accent)">${pct}%</b>
-        </div>
-        <div class="score-bar"><div class="score-bar-inner" style="width:${pct}%"></div></div>
-        <div class="src-excerpt">${Utils.escapeHtml((s.excerpt || '').slice(0, 180))}</div>
-        <a class="src-download" href="${downloadUrl}" title="下载源文档 ${Utils.escapeHtml(docName)}" download>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          下载原文
-        </a>
-      `;
+        <div class="src-name">${Utils.escapeHtml(name.replace(".md", "").replace(/_/g, " "))}</div>
+        <div class="src-meta"><span>${Utils.escapeHtml(Utils.truncate(source.heading || "Unsectioned", 34))}</span><b>${score}%</b></div>
+        <div class="score-bar"><div class="score-bar-inner" style="width:${score}%"></div></div>
+        <div class="src-excerpt">${Utils.escapeHtml((source.excerpt || "").slice(0, 160))}</div>
+        <a class="src-download" href="${API.BASE}/api/documents/download/${encodeURIComponent(name)}" download>下载原文 ↗</a>`;
       grid.appendChild(card);
     });
-
     section.appendChild(grid);
     return section;
   },
 
-  /** ── 滚动到底部 ── */
+  _setPipelineState(state) {
+    const stages = [...document.querySelectorAll("#pipeline-trace li")];
+    const stageOrder = ["rewrite", "retrieve", "fusion", "rerank", "filter", "generate"];
+    const activeIndex = state === "ready" ? -1 : stageOrder.indexOf(state);
+    stages.forEach((node, index) => {
+      node.classList.toggle("complete", state === "complete" || (activeIndex >= 0 && index < activeIndex));
+      node.classList.toggle("active", activeIndex === index);
+    });
+    if (this.el.pipelineStatus) {
+      this.el.pipelineStatus.textContent =
+        state === "ready" ? "READY" : state === "complete" ? "COMPLETE" : "RUNNING";
+    }
+  },
+
+  _renderEvidencePanel(sources) {
+    if (!this.el.evidenceList) return;
+    this.el.evidenceCount.textContent = `${sources.length} SOURCE${sources.length === 1 ? "" : "S"}`;
+    if (!sources.length) {
+      this.el.evidenceList.innerHTML = '<div class="evidence-empty">运行一次查询后，这里会显示当前回答使用的文档、章节与相关度。</div>';
+      return;
+    }
+    this.el.evidenceList.innerHTML = sources.slice(0, 5).map(source => {
+      const score = Utils.pct(source.score || 0);
+      const name = (source.documentName || "Unknown").replace(".md", "").replace(/_/g, " ");
+      return `<article class="evidence-item">
+        <div class="evidence-item-head"><strong title="${Utils.escapeHtml(name)}">${Utils.escapeHtml(name)}</strong><b>${score}%</b></div>
+        <p>${Utils.escapeHtml(Utils.truncate(source.heading || "Unsectioned", 46))}</p>
+        <i style="--score:${score}%"></i>
+      </article>`;
+    }).join("");
+  },
+
   _scrollBottom() {
     requestAnimationFrame(() => {
       this.el.chatMessages.scrollTop = this.el.chatMessages.scrollHeight;
     });
   },
 
-  /** ── 发送消息 ── */
   async _send() {
     const text = this.el.chatInput.value.trim();
     if (!text || this.streaming) return;
-
     this.streaming = true;
     this.el.sendBtn.disabled = true;
-    this.el.chatInput.value = '';
-    this.el.chatInput.style.height = 'auto';
+    this.el.chatInput.value = "";
+    this.el.chatInput.style.height = "auto";
 
-    // 确保当前会话存在
-    if (this.activeSession === 'default') {
-      this.newSession();
-    }
+    if (this.activeSession === "default") this.newSession();
     const session = this.sessions[this.activeSession];
-    if (!session) { this.streaming = false; return; }
-
-    // 首条消息作为标题
-    if (session.messages.length === 0) {
-      session.title = text.slice(0, 30) + (text.length > 30 ? '…' : '');
-    }
-
-    // 保存用户消息
-    session.messages.push({ role: 'user', content: text, timestamp: new Date().toISOString() });
+    if (!session) return;
+    if (!session.messages.length) session.title = `${text.slice(0, 30)}${text.length > 30 ? "…" : ""}`;
+    session.messages.push({ role: "user", content: text, timestamp: new Date().toISOString() });
     this._saveSessions();
     this._renderConvList();
 
-    // 移除空状态
-    if (this.el.chatMessages.querySelector('.chat-empty')) {
-      this.el.chatMessages.innerHTML = '';
-    }
-
-    // 显示用户消息
+    if (this.el.chatMessages.querySelector(".chat-empty")) this.el.chatMessages.innerHTML = "";
     this._addUserBubble(text);
-
-    // 创建 Assistant 气泡
+    this._renderEvidencePanel([]);
+    this._setPipelineState("rewrite");
     const { div, bubble, cursor } = this._addAssistantBubble();
-    let accumulator = '';
+    let accumulator = "";
     let sources = [];
 
     try {
       const reader = await API.sendMessage(text, this.activeSession);
+      this._setPipelineState("retrieve");
       const decoder = new TextDecoder();
-      let buffer = '';
-
+      let buffer = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n\n');
-        buffer = parts.pop() || '';
-
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
         for (const part of parts) {
           if (!part.trim()) continue;
-          const lines = part.split('\n');
-          let eventType = '', data = '';
-          for (const line of lines) {
-            if (line.startsWith('event: ')) eventType = line.slice(7).trim();
-            else if (line.startsWith('data: ')) data = line.slice(6);
-          }
-
-          if (eventType === 'token' && data) {
+          let eventType = "";
+          let data = "";
+          part.split("\n").forEach(line => {
+            if (line.startsWith("event: ")) eventType = line.slice(7).trim();
+            if (line.startsWith("data: ")) data = line.slice(6);
+          });
+          if (eventType === "token" && data) {
+            this._setPipelineState("generate");
             accumulator += data;
             bubble.innerHTML = Markdown.render(accumulator);
             bubble.appendChild(cursor);
             this._scrollBottom();
-          } else if (eventType === 'sources') {
-            try { sources = JSON.parse(data); } catch {}
+          } else if (eventType === "sources") {
+            try {
+              sources = JSON.parse(data);
+              this._renderEvidencePanel(sources);
+            } catch {}
           }
         }
       }
-    } catch (err) {
-      bubble.innerHTML = Markdown.render(
-        accumulator || `> ❌ 请求失败：${Utils.escapeHtml(err.message)}`
-      );
+    } catch (error) {
+      accumulator = accumulator || `> 请求失败：${Utils.escapeHtml(error.message)}`;
     }
 
-    // 移除 typing cursor
-    cursor.remove();
+    cursor?.remove();
     bubble.innerHTML = Markdown.render(accumulator);
-
-    // 添加来源引用
-    if (sources.length > 0) {
-      div.appendChild(this._buildSourcesEl(sources));
-    }
-
-    // 保存 Assistant 消息
-    session.messages.push({
-      role: 'assistant',
-      content: accumulator,
-      sources,
-      timestamp: new Date().toISOString(),
-    });
+    if (sources.length) div.appendChild(this._buildSourcesEl(sources));
+    session.messages.push({ role: "assistant", content: accumulator, sources, timestamp: new Date().toISOString() });
     this._saveSessions();
-
+    this._setPipelineState("complete");
     this.streaming = false;
     this.el.sendBtn.disabled = false;
     this.el.chatInput.focus();
