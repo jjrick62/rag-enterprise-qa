@@ -16,10 +16,10 @@
 - Create: `backend/tests/test_frontend_console.py`
 - Modify: `frontend/index.html`
 
-- [ ] 编写失败测试，要求页面包含 `console-rail`、`evidence-panel`、六个链路节点和三项当前基线。
-- [ ] 运行 `pytest tests/test_frontend_console.py -q`，确认因结构缺失失败。
-- [ ] 重构 `index.html`，保留现有 DOM id 和脚本加载顺序。
-- [ ] 再次运行测试并确认通过。
+- [x] 编写失败测试，要求页面包含 `console-rail`、`evidence-panel`、六个链路节点和三项当前基线。
+- [x] 运行 `pytest tests/test_frontend_console.py -q`，确认因结构缺失失败。
+- [x] 重构 `index.html`，保留现有 DOM id 和脚本加载顺序。
+- [x] 再次运行测试并确认通过。
 
 ### Task 2: 实现视觉与响应式布局
 
@@ -27,10 +27,10 @@
 - Modify: `frontend/css/style.css`
 - Test: `backend/tests/test_frontend_console.py`
 
-- [ ] 增加失败测试，要求桌面三栏和 1080px、760px 两级响应式规则。
-- [ ] 运行目标测试并确认失败。
-- [ ] 实现深色轨道、中央工作区、证据侧栏、英雄区和移动端折叠。
-- [ ] 运行目标测试并确认通过。
+- [x] 增加失败测试，要求桌面三栏和 1080px、760px 两级响应式规则。
+- [x] 运行目标测试并确认失败。
+- [x] 实现深色轨道、中央工作区、证据侧栏、英雄区和移动端折叠。
+- [x] 运行目标测试并确认通过。
 
 ### Task 3: 同步真实链路与证据
 
@@ -38,16 +38,16 @@
 - Modify: `frontend/js/chat.js`
 - Test: `backend/tests/test_frontend_console.py`
 
-- [ ] 增加失败测试，要求 `setPipelineState` 和 `renderEvidencePanel`。
-- [ ] 运行目标测试并确认失败。
-- [ ] 在发送、流式生成、sources 到达和结束时更新右侧面板。
-- [ ] 运行目标测试和现有前端相关测试。
+- [x] 增加失败测试，要求 `setPipelineState` 和 `renderEvidencePanel`。
+- [x] 运行目标测试并确认失败。
+- [x] 在发送、流式生成、sources 到达和结束时更新右侧面板。
+- [x] 运行目标测试和现有前端相关测试。
 
 ### Task 4: 浏览器验收
 
 **Files:**
 - Verify: `frontend/index.html`
 
-- [ ] 启动本地服务并打开实际应用。
-- [ ] 验证 1440px 桌面布局、760px 移动布局、标签切换和控制台日志。
-- [ ] 运行 `git diff --check` 与前端测试集。
+- [x] 启动本地服务并打开实际应用。
+- [x] 验证 1440px 桌面布局、760px 移动布局、标签切换和控制台日志。
+- [x] 运行 `git diff --check` 与前端测试集。
