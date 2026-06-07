@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 INDEX = ROOT / "frontend" / "index.html"
 CSS = ROOT / "frontend" / "css" / "style.css"
 CHAT_JS = ROOT / "frontend" / "js" / "chat.js"
+API_JS = ROOT / "frontend" / "js" / "api.js"
 
 
 def test_console_has_three_column_trust_layout():
@@ -59,3 +60,10 @@ def test_chat_updates_pipeline_and_evidence_panel():
     assert "_setPipelineState" in script
     assert "_renderEvidencePanel" in script
     assert "evidence-list" in script
+
+
+def test_frontend_api_uses_same_origin_for_public_tunnels():
+    script = API_JS.read_text(encoding="utf-8")
+
+    assert "window.location.origin" in script
+    assert "http://localhost:8000" not in script

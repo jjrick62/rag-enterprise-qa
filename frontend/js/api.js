@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════ */
 
 const API = {
-  BASE: 'http://localhost:8000',
+  BASE: window.location.origin,
 
   /** 健康检查 */
   async health() {
