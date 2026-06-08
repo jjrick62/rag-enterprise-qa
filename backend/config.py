@@ -11,8 +11,6 @@ _config_instance: "Config | None" = None
 
 @dataclass(frozen=True)
 class Config:
-    deepseek_api_key: str
-    deepseek_base_url: str
     mimo_api_key: str
     mimo_base_url: str
     mimo_model: str
@@ -28,8 +26,6 @@ class Config:
         if _config_instance is not None:
             return _config_instance
         _config_instance = Config(
-            deepseek_api_key=os.getenv("DEEPSEEK_API_KEY", ""),
-            deepseek_base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
             mimo_api_key=os.getenv("MIMO_API_KEY", ""),
             mimo_base_url=os.getenv("MIMO_BASE_URL", "https://api.xiaomimimo.com/v1"),
             mimo_model=os.getenv("MIMO_MODEL", "mimo-v2.5-pro"),

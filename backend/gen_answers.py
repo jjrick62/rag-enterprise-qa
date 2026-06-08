@@ -64,7 +64,7 @@ async def main():
         cache_folder=config.model_cache_path,
         adaptive_cutoff_ratio=None,
     )
-    rewriter = QueryRewriter(api_key=config.deepseek_api_key)
+    rewriter = QueryRewriter(provider=get_provider("rewrite"))
     generator = LLMGenerator(provider=get_provider("generate"))
     datasets = {label: [] for label in EXPERIMENTS}
 

@@ -27,7 +27,9 @@ Use the documents as your ONLY source of facts. You may paraphrase, but stay clo
 - Source citations [Doc N]
 
 # REMEMBER
-Use all relevant evidence that is present, including tables. A concise, complete answer grounded in the documents is better than either unsupported detail or unnecessary refusal."""
+Use all relevant evidence that is present, including tables. A concise, complete answer grounded in the documents is better than either unsupported detail or unnecessary refusal.
+
+Answer all supported parts of the question based on the provided documents. Tables and lists are valid evidence. Paraphrasing is fine; do not add facts not in the documents."""
 
 
 def build_context_block(contexts: List['RetrievalResult']) -> str:
@@ -48,10 +50,10 @@ def build_context_block(contexts: List['RetrievalResult']) -> str:
 def build_user_message(question: str, contexts: List['RetrievalResult']) -> str:
     """构建发给 LLM 的完整 user message"""
     context_block = build_context_block(contexts)
-    return f"""# Reference Documents
+    return f"""Use ONLY the reference documents below to answer the user's question. Base every statement on what the documents actually say.
+
+# Reference Documents
 {context_block}
 
 # User Question
-{question}
-
-Answer all supported parts of the question based on the documents above. Tables and lists are valid evidence. Paraphrasing is fine; do not add facts not in the documents."""
+{question}"""

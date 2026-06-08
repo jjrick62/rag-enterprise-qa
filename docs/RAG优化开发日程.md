@@ -1,6 +1,6 @@
 # RAG 优化开发日程
 
-> 更新：2026-06-06
+> 更新：2026-06-07
 > 当前阶段：端到端评测可信化完成，进入召回深度优化。
 
 ## 已完成
@@ -16,15 +16,21 @@
 | 6/6 | 相对过滤四组实验 | 默认 `0.75` |
 | 6/6 | Prompt 平衡化 | 表格可归纳、部分证据可回答 |
 | 6/6 | 密钥与目录整理 | Key 迁移 `.env`，评测归档 |
+| 6/7 | MiMo 温度/思考模式实验 | T02 三项均值 0.897，综合最优 |
+| 6/7 | D4P 冻结上下文严格对照 | D4P 更忠实，MiMo 更相关，总体近似持平 |
 
 ## 当前基线
 
 ```text
-Faithfulness       0.918
-Answer Relevancy   0.826
-Context Precision  0.844
-Tests              48 passed
+Model              MiMo v2.5 Pro, non-thinking, temperature=0.2
+Faithfulness       0.946
+Answer Relevancy   0.876
+Context Precision  0.869
+Mean               0.897
+Tests              68 passed (excluding local-model cache tests)
 ```
+
+D4P 严格对照：`0.968 / 0.851 / 0.831`。D4P 的 Faithfulness 更高，MiMo 的 Answer Relevancy 和综合均值更高。
 
 ## 下一阶段
 

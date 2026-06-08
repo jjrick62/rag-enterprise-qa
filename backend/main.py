@@ -17,23 +17,47 @@ from services.recursive_chunker import RecursiveChunker
 from services.embedder import BGEBaaIEmbedder
 from services.retriever import ChromaRetriever
 from services.hybrid_retriever import HybridRetriever
-from services.generator import DeepSeekGenerator
+from services.generator import LLMGenerator
 from services.reranker import BgeReranker
 from services.query_rewriter import QueryRewriter
+from services.llm_factory import get_provider
 from services.pipeline import RAGPipeline
+
+
+def _resolve_model(model_name: str, cache_dir: str) -> str:
+    """优先本地模型路径，未找到则返回 HuggingFace ID"""
+    short = model_name.split("/")[-1].lower().replace("-", "").replace("_", "").replace(".", "")
+
+    # 搜遍 AI-ModelScope 和 HF cache 找含 config.json 的目录
+    search_roots = [
+        os.path.join(cache_dir, "AI-ModelScope"),
+        os.path.join(cache_dir, "models--" + model_name.replace("/", "--")),
+    ]
+    for root in search_roots:
+        if not os.path.isdir(root):
+            continue
+        for dirpath, _, _ in os.walk(root):
+            if os.path.isfile(os.path.join(dirpath, "config.json")):
+                dname = os.path.basename(dirpath).lower().replace("-", "").replace("_", "").replace(".", "")
+                if short in dname or dname in short:
+                    return os.path.abspath(dirpath)
+    return model_name
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """启动时构建 Pipeline，关闭时清理"""
     config = Config.load()
+    models_dir = os.path.abspath(config.model_cache_path)
 
     # Embedder 是共享实例——ChromaRetriever 检索时也用它向量化问题
     embedder = BGEBaaIEmbedder(
-        model_name=config.embedding_model,
-        device="cpu",  # 先 CPU 跑通，后续装 CUDA 版 PyTorch 换 cuda
-        cache_folder=config.model_cache_path,
+        model_name=_resolve_model(config.embedding_model, models_dir),
+        device="cpu",
+        cache_folder=models_dir,
     )
+
+    reranker_model = _resolve_model("BAAI/bge-reranker-v2-m3", models_dir)
 
     pipeline = (
         RAGPipeline.builder()
@@ -46,21 +70,13 @@ async def lifespan(app: FastAPI):
                 embedder=embedder,
             )
         ))
-        .with_generator(DeepSeekGenerator(
-            api_key=config.deepseek_api_key,
-            base_url=config.deepseek_base_url,
-            model="deepseek-chat",
-            temperature=0.3,
-        ))
+        .with_generator(LLMGenerator(provider=get_provider("generate")))
         .with_reranker(BgeReranker(
-            model_name="BAAI/bge-reranker-v2-m3",
+            model_name=reranker_model,
             device="cpu",
-            cache_folder=config.model_cache_path,
+            cache_folder=models_dir,
         ))
-        .with_rewriter(QueryRewriter(
-            api_key=config.deepseek_api_key,
-            base_url=config.deepseek_base_url,
-        ))
+        .with_rewriter(QueryRewriter(provider=get_provider("rewrite")))
         .build()
     )
 
@@ -94,6 +110,14 @@ app.include_router(documents_router)
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+# ngrok 免费版浏览器欢迎页绕行：强塞响应头让浏览器跳过 interstitial
+@app.middleware("http")
+async def add_ngrok_skip_header(request, call_next):
+    response = await call_next(request)
+    response.headers["ngrok-skip-browser-warning"] = "1"
+    return response
 
 
 # 挂载前端静态文件 — 放在最后确保 API 路由优先匹配

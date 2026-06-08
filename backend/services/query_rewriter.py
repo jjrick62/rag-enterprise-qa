@@ -3,7 +3,6 @@
 解决痛点：中文提问、口语化表述、术语不匹配 → Embedding 检索效果差
 方案：LLM 看到全库文档索引后，用知识库术语改写问题
 """
-from openai import AsyncOpenAI
 from schemas.chat import RetrievalResult
 
 # 全库文档索引——54 篇 IBM watsonx 文档的主题分组
@@ -38,7 +37,7 @@ DOC_INDEX = """【知识库索引 — 54 篇 IBM watsonx 技术文档】
   "deployment" = 部署, "tokenization" = 分词,
   "CPLEX/CPO/OPL" = IBM 优化求解器, "DOcplex" = Python 建模 API"""
 
-REWRITE_PROMPT = """你是 RAG 检索系统的 Query 优化器。你的任务是把用户的原始问题改写为适合向量检索的专业英文查询。
+REWRITE_SYSTEM = """你是 RAG 检索系统的 Query 优化器。你的任务是把用户的原始问题改写为适合向量检索的专业英文查询。
 
 {index}
 
@@ -50,45 +49,38 @@ REWRITE_PROMPT = """你是 RAG 检索系统的 Query 优化器。你的任务是
 5. 输出只包含改写后的问题，不要加引号、解释、前缀
 
 ## 示例
-用户: "有啥基础模型能用"
-输出: What foundation models are available in watsonx.ai
-
-用户: "怎么部署模型"
-输出: How to deploy a Decision Optimization model
-
-用户: "联邦学习是干啥的"
-输出: What is IBM Federated Learning and its architecture
-
-用户: "那个啥，我就想问一下，数据库怎么连啊"
-输出: How to create a database connection in watsonx
-
-用户（英文已足够精准）: "What is greedy decoding"
-输出: What is greedy decoding
-
-## 用户问题
-{question}
-
-输出:"""
+输入: "有啥基础模型能用"        → What foundation models are available in watsonx.ai
+输入: "怎么部署模型"            → How to deploy a Decision Optimization model
+输入: "联邦学习是干啥的"        → What is IBM Federated Learning and its architecture
+输入: "数据库怎么连啊"          → How to create a database connection in watsonx
+输入: "What is greedy decoding" → What is greedy decoding"""
 
 
 class QueryRewriter:
-    """使用 DeepSeek API 改写用户问题"""
+    """使用配置的 LLM Provider 改写用户问题。"""
 
-    def __init__(self, api_key: str, base_url: str = "https://api.deepseek.com"):
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+    def __init__(self, provider):
+        self._client = provider.create_async_client()
+        self._model = provider.model
 
     async def rewrite(self, question: str) -> str:
-        """改写问题——中文→英文，口语→术语"""
-        prompt = REWRITE_PROMPT.format(index=DOC_INDEX, question=question)
+        """改写问题——中文→英文，口语→术语
 
+        System 消息放 DOC_INDEX + 规则（始终相同 → 前缀缓存命中），
+        User 消息只放问题本身。
+        """
         response = await self._client.chat.completions.create(
-            model="deepseek-chat",
-            temperature=0.1,  # 低温度，确保输出稳定
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=80,  # 改写后的问题不超过 80 token
+            model=self._model,
+            temperature=0.1,
+            messages=[
+                {"role": "system", "content": REWRITE_SYSTEM.format(index=DOC_INDEX)},
+                {"role": "user", "content": question},
+            ],
+            max_tokens=512,  # MiMo 内部消耗 token，需要充裕预算
         )
 
-        rewritten = response.choices[0].message.content.strip()
-        # 清理：去掉可能的引号包裹
-        rewritten = rewritten.strip('"').strip("'").strip()
+        rewritten = (response.choices[0].message.content or "").strip().strip('"').strip("'").strip()
+        # MiMo 非思考模式偶发空返回 → 回退原问题，避免空查询污染全链路
+        if not rewritten:
+            return question
         return rewritten

@@ -13,7 +13,7 @@ data = json.load(open(
     encoding='utf-8',
 ))
 c = get_provider("judge").create_client()
-llm = llm_factory('deepseek-chat', client=c, temperature=0.0)
+llm = llm_factory(get_provider("judge").model, client=c, temperature=0.0)
 faithfulness.llm = llm
 context_precision.llm = llm
 

@@ -20,30 +20,35 @@ class LLMProvider:
         self._use_api_key_header = use_api_key_header
 
     def create_client(self) -> OpenAI:
+        timeout = httpx.Timeout(300.0, connect=10.0)
         if self._use_api_key_header:
             return OpenAI(
                 base_url=self.base_url,
                 api_key=self.api_key,
+                timeout=300.0,
                 http_client=httpx.Client(
                     headers={"api-key": self.api_key},
+                    timeout=timeout,
                 ),
             )
-        return OpenAI(api_key=self.api_key, base_url=self.base_url)
+        return OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=300.0)
 
     def create_async_client(self) -> AsyncOpenAI:
+        timeout = httpx.Timeout(300.0, connect=10.0)
         if self._use_api_key_header:
             return AsyncOpenAI(
                 base_url=self.base_url,
                 api_key=self.api_key,
+                timeout=300.0,
                 http_client=httpx.AsyncClient(
                     headers={"api-key": self.api_key},
+                    timeout=timeout,
                 ),
             )
-        return AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+        return AsyncOpenAI(api_key=self.api_key, base_url=self.base_url, timeout=300.0)
 
 MIMO = None
 MIMO_THINK = None
-DEEPSEEK_V4 = None
 
 
 def _require_key(name: str, value: str) -> str:
@@ -75,36 +80,18 @@ def _get_mimo(thinking: bool):
     return cached
 
 
-def _get_deepseek_v4():
-    global DEEPSEEK_V4
-    if DEEPSEEK_V4 is None:
-        from config import Config
-        c = Config.load()
-        DEEPSEEK_V4 = LLMProvider(
-            name="DeepSeek-V4-Pro",
-            api_key=_require_key("DEEPSEEK_API_KEY", c.deepseek_api_key),
-            base_url=c.deepseek_base_url,
-            model="deepseek-v4-pro",
-        )
-    return DEEPSEEK_V4
-
-
 # ── 角色→Provider 映射 ──
 
 def get_provider(role: str) -> LLMProvider:
     """按角色获取 LLM Provider
 
     role:
-      - 'generate': 答案生成 → DeepSeek V4 Pro
-      - 'judge':    RAGAS 评估 → MiMo (开 thinking)
-      - 'rewrite':  Query 改写 → MiMo (关 thinking, 便宜)
+      - 'generate': 答案生成 → MiMo（免费，关 thinking）
+      - 'judge':    RAGAS 评估 → MiMo（开 thinking）
+      - 'rewrite':  Query 改写 → MiMo（关 thinking）
     """
-    if role == 'judge':
-        return _get_mimo(thinking=True)
-    elif role == 'generate':
-        return _get_deepseek_v4()
-    elif role == 'rewrite':
-        return _get_mimo(thinking=False)
+    if role in ('judge', 'generate', 'rewrite'):
+        return _get_mimo(thinking=(role == 'judge'))
     raise ValueError(f"Unknown role: {role}")
 
 

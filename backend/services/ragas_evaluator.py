@@ -61,11 +61,10 @@ class RagasEvaluator(BaseEvaluator):
       - LLMJudge: 一步法，整体打分
     """
 
-    def __init__(self, api_key: str, base_url: str = "https://api.deepseek.com/v1",
+    def __init__(self, api_key: str = "",
                  embedding_model: str = "BAAI/bge-small-zh-v1.5",
                  embedding_device: str = "cpu"):
         self._api_key = api_key
-        self._base_url = base_url
         self._embedding_model = embedding_model
         self._embedding_device = embedding_device
 
@@ -92,16 +91,30 @@ class RagasEvaluator(BaseEvaluator):
 
         llm = llm_factory(provider.model, client=client, temperature=0.0, max_tokens=8192)
 
-        # Embeddings: 用本地 BGE 模型，不调 DeepSeek（它没有 /embeddings 端点）
+        # Embeddings 使用本地 BGE 模型，不调用外部 embedding API。
         from services.embedder import BGEBaaIEmbedder
         from ragas.embeddings.base import BaseRagasEmbeddings
+
+        # 本地模型路径解析（优先 ModelScope 缓存）
+        def _resolve_local(model_id, cache):
+            short = model_id.split("/")[-1].lower().replace("-","").replace("_","").replace(".","")
+            for root in [os.path.join(cache, "AI-ModelScope"), os.path.join(cache, "models--"+model_id.replace("/","--"))]:
+                if not os.path.isdir(root): continue
+                for dp, _, _ in os.walk(root):
+                    if os.path.isfile(os.path.join(dp, "config.json")):
+                        dn = os.path.basename(dp).lower().replace("-","").replace("_","").replace(".","")
+                        if short in dn or dn in short: return os.path.abspath(dp)
+            return model_id
+
+        models_dir = os.path.abspath("./models")
+        emb_model = _resolve_local(self._embedding_model, models_dir)
 
         class BGERagasEmbeddings(BaseRagasEmbeddings):
             """本地 BGE 模型包装为 RAGAS embeddings 接口"""
             def __init__(self, model_name, device):
                 super().__init__()
                 self._bge = BGEBaaIEmbedder(
-                    model_name=model_name, device=device, cache_folder="./models",
+                    model_name=model_name, device=device, cache_folder=models_dir,
                 )
             def embed_query(self, text: str) -> list:
                 return self._bge.embed([text])[0].tolist()
@@ -112,7 +125,7 @@ class RagasEvaluator(BaseEvaluator):
             async def aembed_documents(self, texts: list):
                 return self.embed_documents(texts)
 
-        lc_embeddings = BGERagasEmbeddings(self._embedding_model, self._embedding_device)
+        lc_embeddings = BGERagasEmbeddings(emb_model, self._embedding_device)
 
         # RAGAS 0.4 兼容方案：旧版 singleton 指标
         from ragas.metrics import faithfulness, answer_relevancy, context_precision  # noqa: E402

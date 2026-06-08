@@ -7,7 +7,8 @@ from services.recursive_chunker import RecursiveChunker
 from services.embedder import BGEBaaIEmbedder
 from services.retriever import ChromaRetriever
 from services.hybrid_retriever import HybridRetriever
-from services.generator import DeepSeekGenerator
+from services.generator import LLMGenerator
+from services.llm_factory import get_provider
 from services.reranker import BgeReranker
 from services.query_rewriter import QueryRewriter
 from services.pipeline import RAGPipeline
@@ -56,6 +57,7 @@ async def run_ablation_case(name, pipe, questions):
 
 async def main():
     config = Config.load()
+    generate_provider = get_provider("generate")
     emb = BGEBaaIEmbedder(
         model_name=config.embedding_model,
         device="cpu",
@@ -84,7 +86,7 @@ async def main():
         .with_chunker(FixedChunker(chunk_size=500, overlap=50))
         .with_embedder(emb)
         .with_retriever(ChromaRetriever(persist_path=config.chroma_path, embedder=emb))
-        .with_generator(DeepSeekGenerator(api_key=config.deepseek_api_key))
+        .with_generator(LLMGenerator(provider=generate_provider))
         .build()
     )
     await run_ablation_case("1. MVP (FixedChunker + 纯向量)", p1, questions)
@@ -96,7 +98,7 @@ async def main():
         .with_chunker(RecursiveChunker(chunk_size=500, overlap_ratio=0.15, max_overlap=50))
         .with_embedder(emb)
         .with_retriever(ChromaRetriever(persist_path=config.chroma_path, embedder=emb))
-        .with_generator(DeepSeekGenerator(api_key=config.deepseek_api_key))
+        .with_generator(LLMGenerator(provider=generate_provider))
         .build()
     )
     await run_ablation_case("2. + RecursiveChunker", p2, questions)
@@ -108,7 +110,7 @@ async def main():
         .with_chunker(RecursiveChunker(chunk_size=500, overlap_ratio=0.15, max_overlap=50))
         .with_embedder(emb)
         .with_retriever(ChromaRetriever(persist_path=config.chroma_path, embedder=emb))
-        .with_generator(DeepSeekGenerator(api_key=config.deepseek_api_key))
+        .with_generator(LLMGenerator(provider=generate_provider))
         .with_reranker(reranker)
         .build()
     )
@@ -125,9 +127,9 @@ async def main():
                 persist_path=config.chroma_path, embedder=emb
             )
         ))
-        .with_generator(DeepSeekGenerator(api_key=config.deepseek_api_key))
+        .with_generator(LLMGenerator(provider=generate_provider))
         .with_reranker(reranker)
-        .with_rewriter(QueryRewriter(api_key=config.deepseek_api_key))
+        .with_rewriter(QueryRewriter(provider=get_provider("rewrite")))
         .build()
     )
     await run_ablation_case(

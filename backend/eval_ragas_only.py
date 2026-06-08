@@ -36,9 +36,7 @@ print(f"Loading cached eval dataset from {EVAL_CACHE}")
 dataset = json.load(open(EVAL_CACHE, "r", encoding="utf-8"))
 print(f"Evaluating {len(dataset)} QA pairs with RAGAS (MiMo)...\n")
 
-evaluator = RagasEvaluator(
-    api_key=config.deepseek_api_key,
-)
+evaluator = RagasEvaluator()  # Judge 由统一 LLM 工厂提供。
 t0 = time.time()
 report = asyncio.run(evaluator.evaluate(dataset))
 elapsed = time.time() - t0

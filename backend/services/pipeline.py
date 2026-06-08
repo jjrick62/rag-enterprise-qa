@@ -148,7 +148,10 @@ class RAGPipeline:
         # Query 改写——中文→英文，口语→术语（只改检索词，不改生成上下文）
         search_query = question
         if self._rewriter:
-            search_query = await self._rewriter.rewrite(question)
+            rewritten = await self._rewriter.rewrite(question)
+            if rewritten and rewritten.strip():
+                search_query = rewritten
+            # MiMo 偶发空返回 → 静默回退原问题
 
         query_embedding = self._embedder.embed([search_query])[0]
 

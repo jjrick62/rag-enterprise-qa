@@ -8,9 +8,9 @@ from services.recursive_chunker import RecursiveChunker
 from services.embedder import BGEBaaIEmbedder
 from services.retriever import ChromaRetriever
 from services.hybrid_retriever import HybridRetriever
-from services.generator import DeepSeekGenerator
 from services.reranker import BgeReranker
 from services.query_rewriter import QueryRewriter
+from services.llm_factory import get_provider
 from services.pipeline import RAGPipeline
 from services.prompts import build_context_block
 
@@ -18,7 +18,7 @@ async def main():
     c = Config.load()
     emb = BGEBaaIEmbedder(model_name=c.embedding_model, device='cpu', cache_folder=c.model_cache_path)
     reranker = BgeReranker(device='cpu', cache_folder=c.model_cache_path)
-    rewriter = QueryRewriter(api_key=c.deepseek_api_key)
+    rewriter = QueryRewriter(provider=get_provider("rewrite"))
 
     q = 'What are parameters in CLEM'
 

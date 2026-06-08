@@ -29,6 +29,7 @@ from services.retriever import ChromaRetriever
 from services.hybrid_retriever import HybridRetriever
 from services.reranker import BgeReranker
 from services.query_rewriter import QueryRewriter
+from services.llm_factory import get_provider
 from services.pipeline import RAGPipeline
 
 # 30 道 QA 的问题（跳过 Query Rewrite 环节，直接测检索）
@@ -76,9 +77,7 @@ def build_pipeline():
             model_name="BAAI/bge-reranker-v2-m3", device="cpu",
             cache_folder=config.model_cache_path,
         ))
-        .with_rewriter(QueryRewriter(
-            api_key=config.deepseek_api_key, base_url=config.deepseek_base_url,
-        ))
+        .with_rewriter(QueryRewriter(provider=get_provider("rewrite")))
         .build()
     )
 

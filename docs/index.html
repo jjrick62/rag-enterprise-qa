@@ -476,7 +476,7 @@
 
     .temperature-notes {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       background: var(--paper-strong);
       color: var(--ink);
     }
@@ -1007,7 +1007,7 @@
     <div class="shell">
       <nav class="hero-nav" aria-label="页面导航">
         <span class="brand">RAG / ENGINEERING REPORT</span>
-        <span class="live-mark">v2 CURRENT BASELINE</span>
+        <span class="live-mark">MIMO T02 / PRODUCTION</span>
       </nav>
 
       <div class="hero-body">
@@ -1022,21 +1022,21 @@
         </div>
 
         <div>
-          <div class="hero-stats" aria-label="v2 当前基线指标">
+          <div class="hero-stats" aria-label="MiMo T02 当前生产指标">
             <div class="hero-stat">
-              <strong>0.931</strong>
+              <strong>0.946</strong>
               <span>Faithfulness</span>
             </div>
             <div class="hero-stat">
-              <strong>0.857</strong>
+              <strong>0.876</strong>
               <span>Answer Relevancy</span>
             </div>
             <div class="hero-stat">
-              <strong>0.857</strong>
+              <strong>0.869</strong>
               <span>Context Precision</span>
             </div>
           </div>
-          <p class="hero-footnote">30 道 watsonxDocsQA · DeepSeek V4 Pro 生成 · MiMo v2.5 Pro Judge · 完整上下文 · IBM 标题 fallback</p>
+          <p class="hero-footnote">30 道 watsonxDocsQA · MiMo v2.5 Pro T02 生成 · MiMo Judge · 完整上下文 · D4P 严格对照</p>
         </div>
       </div>
     </div>
@@ -1093,7 +1093,9 @@
                 <tr><td>F1</td><td>0.901</td><td>0.791</td><td>0.834</td><td>formal</td></tr>
                 <tr><td>F2</td><td>0.918</td><td>0.826</td><td>0.844</td><td>formal</td></tr>
                 <tr><td>F3</td><td>0.937</td><td>0.780</td><td>0.799</td><td>formal</td></tr>
-                <tr><td>v2</td><td>0.931</td><td>0.857</td><td>0.857</td><td>current</td></tr>
+                <tr><td>v2</td><td>0.931</td><td>0.857</td><td>0.857</td><td>historical</td></tr>
+                <tr><td>T02</td><td>0.946</td><td>0.876</td><td>0.869</td><td>current</td></tr>
+                <tr><td>D4P-F</td><td>0.968</td><td>0.851</td><td>0.831</td><td>control</td></tr>
               </tbody>
             </table>
           </div>
@@ -1107,8 +1109,8 @@
               <p>以标准答案作为评测对象，仅用于观察 Judge 与数据集的参考上限。</p>
             </div>
             <div class="flag flag-current">
-              <strong>v2 当前基线</strong>
-              <p>IBM 纯文本标题 fallback 重摄入后，三项指标较 F2 全面提升。</p>
+              <strong>T02 当前生产推荐</strong>
+              <p>MiMo 非思考模式、temperature=0.2，Faithfulness 与三项均值在 MiMo 实验中最高。</p>
             </div>
           </figcaption>
         </figure>
@@ -1164,7 +1166,7 @@
 
           <div class="temperature-notes">
             <div class="temperature-note">
-              <strong>FAITHFULNESS WINNER</strong>
+              <strong>MIMO FAITHFULNESS WINNER</strong>
               <p>T02 达到 0.946，比 T00 高 0.060，是企业知识问答最关键的领先项。</p>
             </div>
             <div class="temperature-note">
@@ -1174,6 +1176,10 @@
             <div class="temperature-note">
               <strong>THINKING ≠ BETTER</strong>
               <p>Thinking 组评估更慢，三项均值 0.869，未超过普通非思考模式的温度 0.2。</p>
+            </div>
+            <div class="temperature-note">
+              <strong>D4P STRICT CONTROL</strong>
+              <p>同上下文下 D4P Faithfulness 0.968 更高；MiMo T02 相关性与三项均值更高，两者总体近似持平。</p>
             </div>
           </div>
 
@@ -1188,6 +1194,7 @@
                 <tr class="selected" data-temperature-run="T02"><td>T02</td><td>temperature 0.2</td><td>0.946</td><td>0.876</td><td>0.869</td><td>0.897</td><td>24.3 min</td></tr>
                 <tr data-temperature-run="T03"><td>T03</td><td>temperature 0.3</td><td>0.918</td><td>0.785</td><td>0.875</td><td>0.859</td><td>26.8 min</td></tr>
                 <tr data-temperature-run="Thinking"><td>Thinking</td><td>reasoning enabled</td><td>0.927</td><td>0.844</td><td>0.836</td><td>0.869</td><td>26.4 min</td></tr>
+                <tr data-model-control="D4P-Frozen"><td>D4P Frozen</td><td>temperature 0.2 / non-thinking</td><td><strong>0.968</strong></td><td>0.851</td><td>0.831</td><td>0.883</td><td>23.6 min</td></tr>
               </tbody>
             </table>
           </div>
@@ -1408,7 +1415,7 @@
       <a class="footer-url" href="https://github.com/jjrick62/rag-enterprise-qa" target="_blank" rel="noopener noreferrer">https://github.com/jjrick62/rag-enterprise-qa</a>
       <div class="footer-meta">
         <span>RAG ENTERPRISE QA / ENGINEERING SHOWCASE</span>
-        <span>WATSONXDOCSQA · 30 QUESTIONS · v2 BASELINE</span>
+        <span>WATSONXDOCSQA · 30 QUESTIONS · MIMO T02 PRODUCTION</span>
       </div>
     </div>
   </footer>
@@ -1418,7 +1425,7 @@
   "meta": {
     "dataset": "watsonxDocsQA",
     "questions": 30,
-    "current_baseline": "v2",
+    "current_baseline": "T02",
     "generated_at": "2026-06-07"
   },
   "iterations": [
@@ -1511,7 +1518,21 @@
       "faithfulness": 0.931,
       "answer_relevancy": 0.857,
       "context_precision": 0.857,
+      "status": "historical"
+    },
+    {
+      "id": "T02",
+      "faithfulness": 0.946,
+      "answer_relevancy": 0.876,
+      "context_precision": 0.869,
       "status": "current"
+    },
+    {
+      "id": "D4P-F",
+      "faithfulness": 0.968,
+      "answer_relevancy": 0.851,
+      "context_precision": 0.831,
+      "status": "control"
     }
   ],
   "thresholds": [

@@ -144,8 +144,8 @@ def test_showcase_hero_contract() -> None:
     )
     for detail in (
         "30 道 watsonxDocsQA",
-        "DeepSeek V4 Pro",
         "MiMo v2.5 Pro",
+        "D4P 严格对照",
         "完整上下文",
     ):
         assert detail in hero.text
@@ -239,6 +239,11 @@ def test_showcase_contains_mimo_temperature_experiment() -> None:
     assert "MiMo 温度实验" in experiment.text
     assert "温度 0.2 综合最优" in experiment.text
     assert "Thinking" in experiment.text
+    assert "D4P STRICT CONTROL" in experiment.text
+    assert "D4P Frozen" in experiment.text
+    assert "0.968" in experiment.text
+    assert "0.851" in experiment.text
+    assert "0.831" in experiment.text
 
     rows = [
         row
@@ -275,12 +280,15 @@ def test_showcase_footer_displays_repository_url() -> None:
     assert url_link.text == GITHUB_URL
 
 
-def test_showcase_contains_current_v2_metrics() -> None:
+def test_showcase_contains_current_t02_and_d4p_control_metrics() -> None:
     html = read_showcase()
 
-    assert "0.931" in html
-    assert html.count("0.857") >= 2
-    assert "v2 当前基线" in html
+    assert "0.946" in html
+    assert "0.876" in html
+    assert "0.869" in html
+    assert "T02 当前生产推荐" in html
+    assert "0.968" in html
+    assert "D4P STRICT CONTROL" in html
 
 
 def test_showcase_labels_experiment_caveats() -> None:
@@ -391,7 +399,7 @@ def test_showcase_exposes_all_iteration_metrics_accessibly() -> None:
 
     rows = summary.descendants("tbody")[0].descendants("tr")
 
-    assert len(rows) == 13
+    assert len(rows) == 15
     for row in rows:
         cells = row.descendants("td")
         assert len(cells) == 5

@@ -65,6 +65,26 @@ adaptive_keep_min = 3
 
 结论：默认采用 `0.75`。`0.80` 提升了 Faithfulness，但已经损害相关性和上下文精度。
 
+### MiMo 温度实验（2026-06-07）
+
+| 组别 | Faithfulness | Answer Relevancy | Context Precision | 三项均值 |
+|---|---:|---:|---:|---:|
+| T00 | 0.886 | **0.887** | **0.881** | 0.885 |
+| **T02** | **0.946** | 0.876 | 0.869 | **0.897** |
+| T03 | 0.918 | 0.785 | 0.875 | 0.859 |
+| Thinking | 0.927 | 0.844 | 0.836 | 0.869 |
+
+生产推荐：MiMo v2.5 Pro 非思考模式，`temperature=0.2`。
+
+### D4P 冻结上下文对照（2026-06-07）
+
+| 生成模型 | Faithfulness | Answer Relevancy | Context Precision | 三项均值 |
+|---|---:|---:|---:|---:|
+| D4P | **0.968** | 0.851 | 0.831 | 0.883 |
+| **MiMo T02** | 0.946 | **0.876** | **0.869** | **0.897** |
+
+两组共享同一上下文、Prompt、温度 0.2 与 MiMo Judge，仅替换生成模型。D4P 更忠实且回答更短，MiMo 更相关且生产综合均值更高。只看 Faithfulness 与 Answer Relevancy，两者总体近似持平。
+
 ## 评测注意事项
 
 - Q00 和 Q02 在完整上下文下恢复为高分，证明旧 `0.000` 主要来自评测链路缺陷。
@@ -84,17 +104,17 @@ data/evaluations/archive/    历史运行日志
 
 | 角色 | 当前配置 |
 |---|---|
-| 在线服务生成 | DeepSeek Chat |
-| 评测答案生成 | DeepSeek V4 Pro |
+| 在线服务生成 | MiMo v2.5 Pro（非思考模式，temperature=0.2） |
+| 评测答案生成 | MiMo 温度隔离实验；D4P 仅用于冻结上下文对照 |
 | RAGAS Judge | MiMo v2.5 Pro，thinking enabled |
-| Query Rewrite | 在线服务仍使用 DeepSeek；实验脚本使用现有 QueryRewriter |
+| Query Rewrite | MiMo v2.5 Pro（非思考模式，空结果回退原问题） |
 
 所有 API Key 已迁移至 `backend/.env`，代码中不得硬编码。
 
 ## 验证
 
 ```text
-48 passed
+68 passed（排除依赖本地模型缓存的 embedder 测试）
 ```
 
 ## 下一步

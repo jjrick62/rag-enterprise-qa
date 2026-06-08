@@ -2,7 +2,6 @@
 
 OOP 设计：
   LLMGenerator(BaseGenerator) — 接受 LLMProvider，工厂模式解耦
-  DeepSeekGenerator(BaseGenerator) — 旧接口，向后兼容
 """
 from typing import List, AsyncIterator
 from openai import AsyncOpenAI
@@ -66,23 +65,3 @@ class LLMGenerator(BaseGenerator):
         ]
         yield GenerateEvent(type="sources", sources=sources)
         yield GenerateEvent(type="done")
-
-
-class DeepSeekGenerator(LLMGenerator):
-    """旧接口——向后兼容，内部委托给 LLMGenerator"""
-
-    def __init__(
-        self,
-        api_key: str,
-        base_url: str = "https://api.deepseek.com",
-        model: str = "deepseek-chat",
-        temperature: float = 0.3,
-    ):
-        from services.llm_factory import LLMProvider
-        provider = LLMProvider(
-            name="DeepSeek",
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-        )
-        super().__init__(provider, temperature=temperature)

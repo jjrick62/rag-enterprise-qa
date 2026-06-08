@@ -30,7 +30,7 @@ def test_console_exposes_pipeline_and_quality_signals():
     ):
         assert stage in html
 
-    for metric in ("0.931", "0.857", "Faithfulness", "Answer Relevancy", "Context Precision"):
+    for metric in ("0.946", "0.876", "0.869", "Faithfulness", "Answer Relevancy", "Context Precision"):
         assert metric in html
 
 

@@ -10,20 +10,30 @@ def load_data():
     return json.loads(DATA_PATH.read_text(encoding="utf-8"))
 
 
-def test_v2_is_the_current_baseline_with_expected_scores():
+def test_t02_is_the_current_baseline_and_d4p_is_the_control():
     data = load_data()
     f2 = next(item for item in data["iterations"] if item["id"] == "F2")
     v2 = next(item for item in data["iterations"] if item["id"] == "v2")
+    t02 = next(item for item in data["iterations"] if item["id"] == "T02")
+    d4p = next(item for item in data["iterations"] if item["id"] == "D4P-F")
     current_iterations = [item for item in data["iterations"] if item["status"] == "current"]
 
     assert f2["status"] == "formal"
     assert f2["faithfulness"] == 0.918
     assert f2["answer_relevancy"] == 0.826
     assert f2["context_precision"] == 0.844
-    assert v2["status"] == "current"
+    assert v2["status"] == "historical"
     assert v2["faithfulness"] == 0.931
     assert v2["answer_relevancy"] == 0.857
     assert v2["context_precision"] == 0.857
+    assert t02["status"] == "current"
+    assert t02["faithfulness"] == 0.946
+    assert t02["answer_relevancy"] == 0.876
+    assert t02["context_precision"] == 0.869
+    assert d4p["status"] == "control"
+    assert d4p["faithfulness"] == 0.968
+    assert d4p["answer_relevancy"] == 0.851
+    assert d4p["context_precision"] == 0.831
     assert len(current_iterations) == 1
     assert data["meta"]["current_baseline"] == current_iterations[0]["id"]
 

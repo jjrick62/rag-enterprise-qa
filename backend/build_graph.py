@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from config import Config
 from services.graph_builder import GraphBuilder
 from services.graph_community import CommunityBuilder, CommunityIndex
+from services.llm_factory import get_provider
 
 
 async def main(sample_size: int = 0):
@@ -35,7 +36,8 @@ async def main(sample_size: int = 0):
 
     # Step 1: 实体/关系抽取
     print("[1/3] 抽取实体和关系...")
-    builder = GraphBuilder(api_key=config.deepseek_api_key, base_url=config.deepseek_base_url)
+    provider = get_provider("generate")
+    builder = GraphBuilder(provider=provider)
     await builder.build_from_documents(files)
     builder.save(graph_path)
     kg = builder.graph
@@ -43,7 +45,7 @@ async def main(sample_size: int = 0):
 
     # Step 2: 社区检测
     print("\n[2/3] 社区检测...")
-    cb = CommunityBuilder(api_key=config.deepseek_api_key, base_url=config.deepseek_base_url)
+    cb = CommunityBuilder(provider=provider)
     communities = cb.detect_communities(kg)
     print(f"  Communities: {len(communities)}")
 

@@ -1,5 +1,9 @@
 # Interview Showcase Implementation Plan
 
+> Historical implementation plan. Score assertions below describe the state at
+> authoring time. Current production scores are MiMo T02
+> `0.946 / 0.876 / 0.869`; D4P Frozen is `0.968 / 0.851 / 0.831`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Reorganize the repository into an interview-friendly RAG case study with traceable evaluation data, seven polished diagrams, and a high-impact README without changing runtime behavior.

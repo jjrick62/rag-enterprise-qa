@@ -8,24 +8,28 @@
 
 ## 🔥 RAGAS 评估结果
 
-> 30 道 watsonxDocsQA，DeepSeek V4 Pro 真实生成，MiMo v2.5 Pro 裁判，完整上下文零截断
+> 30 道 watsonxDocsQA，MiMo v2.5 Pro 非思考模式生成（temperature=0.2），MiMo v2.5 Pro 思考模式裁判，完整上下文零截断
 
 | 指标 | **我们的得分** | 企业标准线 | 碾压幅度 |
 |------|:----------:|:------:|:------:|
-| **Faithfulness** | **0.931** | ≥0.80 | **+0.131** |
-| **Answer Relevancy** | **0.857** | ≥0.70 | **+0.157** |
-| **Context Precision** | **0.857** | ≥0.80 | **+0.057** |
+| **Faithfulness** | **0.946** | ≥0.80 | **+0.146** |
+| **Answer Relevancy** | **0.876** | ≥0.70 | **+0.176** |
+| **Context Precision** | **0.869** | ≥0.80 | **+0.069** |
 
 **三指标全部大幅超越企业标准线。** 这代表检索到的上下文高度精准、LLM 生成的答案高度忠实于原文、答案与问题高度相关。
 
-> 2026-06-07 更新：IBM 纯文本标题 fallback + 重摄入后，三项继续上涨（Faith +0.013, AnsRel +0.031, CtxPrec +0.013）。
+> 2026-06-07 更新：冻结上下文温度实验确认 MiMo `temperature=0.2` 综合最优，三项均值 0.897。
 >
 > **历史对比**（同检索策略、独立生成、同 Judge）：
 >
 > | 版本 | Faith. | AnsRel. | CtxPrec. | 说明 |
 > |------|:------:|:-------:|:--------:|------|
 > | F2（旧 chunker，0.75） | 0.918 | 0.826 | 0.844 | 2026-06-06 基线 |
-> | **v2（新 chunker，0.75）** | **0.931** | **0.857** | **0.857** | **2026-06-07 当前** |
+> | v2（D4P，新 chunker，0.75） | 0.931 | 0.857 | 0.857 | 历史基线 |
+> | **MiMo T02（冻结上下文，0.2）** | **0.946** | **0.876** | **0.869** | **当前生产推荐** |
+> | D4P Frozen（严格对照） | **0.968** | 0.851 | 0.831 | Faithfulness 单项最高 |
+>
+> **严格单变量结论**：D4P 与 MiMo T02 共用同一冻结上下文、Prompt、温度和 Judge。D4P 更忠实，MiMo 更相关；只看 Faithfulness 与 Answer Relevancy，两者均值为 0.910 与 0.911，整体近似持平。
 >
 > 旧自适应噪声过滤实验（已存档）：
 >
@@ -64,8 +68,8 @@
 | 融合 | Reciprocal Rank Fusion |
 | 重排序 | `BAAI/bge-reranker-v2-m3` |
 | 分块 | RecursiveChunker，Markdown 标题树 → IBM 纯文本标题 fallback → 句子切分、伪表原子化 |
-| 在线生成 | DeepSeek OpenAI 兼容接口 |
-| 实验生成 | DeepSeek V4 Pro |
+| 在线生成 | MiMo v2.5 Pro（非思考模式） |
+| 实验生成 | MiMo v2.5 Pro 温度隔离 + D4P 冻结上下文对照 |
 | RAGAS Judge | MiMo v2.5 Pro，thinking enabled |
 | 前端 | `frontend/index.html` 完整 SPA（对话 / 文档管理 / 系统信息） |
 
@@ -121,8 +125,6 @@ Copy-Item .env.example .env
 在 `backend/.env` 配置：
 
 ```dotenv
-DEEPSEEK_API_KEY=...
-DEEPSEEK_BASE_URL=https://api.deepseek.com
 MIMO_API_KEY=...
 MIMO_BASE_URL=https://api.xiaomimimo.com/v1
 MIMO_MODEL=mimo-v2.5-pro
@@ -149,7 +151,7 @@ cd backend
 .\venv\Scripts\python.exe -m pytest -q -p no:cacheprovider tests ablation_test.py
 ```
 
-当前结果：`48 passed`。
+当前非模型依赖测试：`68 passed`。
 
 ## 评估
 
@@ -201,3 +203,17 @@ cd backend
 ## License
 
 MIT
+
+---
+
+## 2026-06-07 改动记录
+
+- **前端 v1.0**：三标签 SPA（对话/文档管理/关于），暖纸书房风格，`marked.js` 渲染，来源卡片 + 原文下载
+- **IBM 标题 fallback**：`RecursiveChunker` 新增 `_detect_ibm_headings()`，54 篇纯文本文档首行提取标题，chunk 1714、零空 heading
+- **MiMo 温度实验**：T02 Faith 0.946 / AnsRel 0.876 / CtxPrec 0.869，三项均值 0.897，作为当前生产推荐
+- **D4P 严格对照**：同上下文下 Faith 0.968 / AnsRel 0.851 / CtxPrec 0.831；D4P 更忠实，MiMo 综合更高
+- **模型本地化**：BGE Embedding + Reranker 从 ModelScope 下载到 `backend/models/`，重启不丢
+- **LLM 全切 MiMo**：Generator + Rewriter + Judge 全部走 MiMo 订阅版，全链路零 DeepSeek 调用
+- **Prompt 缓存优化**：Rewriter system/user 拆分（~97% cache hit），Generator 静态前缀（~40% 提升）
+- **代码清理**：删除 `evaluation.py` / `run_ragas_eval.py` / `_reingest.py` 三个已替代脚本
+- **GitHub Pages**：`docs/index.html` 项目展示页，`showcase.html` SVG 图表 + 故障案例

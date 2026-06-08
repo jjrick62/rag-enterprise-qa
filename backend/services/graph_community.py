@@ -10,7 +10,6 @@ import json
 import os
 from typing import List, Dict, Set
 from dataclasses import dataclass, field
-from openai import AsyncOpenAI
 from services.graph_builder import KnowledgeGraph
 
 
@@ -88,8 +87,10 @@ SUMMARY_PROMPT = """你是技术文档分析助手。以下是知识库中一个
 class CommunityBuilder:
     """社区构建器——检测 + 摘要"""
 
-    def __init__(self, api_key: str, base_url: str = "https://api.deepseek.com"):
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+    def __init__(self, provider):
+        self._client = provider.create_async_client()
+        self._model = provider.model
+        self._extra_body = provider.extra_body
 
     def detect_communities(self, kg: KnowledgeGraph) -> List[Community]:
         """基于实体共现关系做简单的连通分量检测
@@ -158,10 +159,11 @@ class CommunityBuilder:
 
         try:
             resp = await self._client.chat.completions.create(
-                model="deepseek-chat",
+                model=self._model,
                 temperature=0.3,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300,
+                extra_body=self._extra_body or None,
             )
             return resp.choices[0].message.content.strip()
         except Exception:

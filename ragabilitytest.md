@@ -1,75 +1,116 @@
 # RAGAS 端到端能力评估报告
 
-> 日期：2026-06-07（更新）
+> 更新日期：2026-06-07
 > 数据集：watsonxDocsQA 30 题
-> 答案：DeepSeek V4 Pro 真实生成
-> Judge：MiMo v2.5 Pro，thinking enabled（订阅版 `token-plan-cn`）
+> 当前生产生成：MiMo v2.5 Pro，非思考模式，temperature=0.2
+> Judge：MiMo v2.5 Pro，thinking enabled
 > 上下文：生成时实际使用的完整 chunk，无截断
-> Chunker：RecursiveChunker + IBM 纯文本标题 fallback（v2，1714 chunks）
+> 检索：RRF Top-20 → BGE Reranker Top-5 → 0.50 绝对阈值 → 0.75 相对阈值 → 至少 3 条
 
-## 当前正式结果（v2）
+## 当前生产推荐：MiMo T02
 
 | 指标 | 分数 | 目标 | 状态 |
-|------|:----:|:----:|:----:|
-| Faithfulness | **0.931** | ≥0.80 | ✓ +0.131 |
-| Answer Relevancy | **0.857** | ≥0.70 | ✓ +0.157 |
-| Context Precision | **0.857** | ≥0.80 | ✓ +0.057 |
+|---|---:|---:|---|
+| Faithfulness | **0.946** | ≥0.80 | +0.146 |
+| Answer Relevancy | **0.876** | ≥0.70 | +0.176 |
+| Context Precision | **0.869** | ≥0.80 | +0.069 |
+| 三项均值 | **0.897** | — | 当前最高综合均值 |
 
-配置：RRF 20 → Reranker Top-5 → `min_score=0.50` + `max4/doc` + `adaptive_cutoff=0.75` + `keep_min=3`。
+选择理由：
 
-## 版本对比
+- 四组 MiMo 生成实验中，T02 的 Faithfulness 与三项均值最高。
+- T00 的 Answer Relevancy 和 Context Precision 略高，但 Faithfulness 低 0.060。
+- T03 的 Answer Relevancy 降至 0.785。
+- Thinking 模式更慢，三项均值仅 0.869，没有超过非思考 T02。
 
-| 版本 | Faith. | AnsRel. | CtxPrec. | Chunks | 说明 |
-|------|:------:|:-------:|:--------:|:------:|------|
-| F2（旧 chunker） | 0.918 | 0.826 | 0.844 | 1274 | heading 全部为空 |
-| **v2（新 chunker）** | **0.931** | **0.857** | **0.857** | 1714 | heading 全量覆盖 |
+## MiMo 温度与模式实验
 
-**变更**：RecursiveChunker 新增 `_detect_ibm_headings()`——54 篇 IBM 文档全部无 `#` markdown 标题，旧版 `heading_stack` 全空。新版从首行提取标题、小节短行自动识别。Chunk 粒度更细（均值 285 vs 432 字符），语义边界更完整。
+四组使用同一次冻结检索上下文，只改变答案生成温度或思考模式。
 
-**结论**：三项反涨，IBM heading fallback 对检索质量正面。
+| 组别 | 生成模式 | Faith. | AnsRel. | CtxPrec. | 三项均值 | RAGAS 耗时 |
+|---|---|---:|---:|---:|---:|---:|
+| T00 | temperature=0.0 | 0.886 | **0.887** | **0.881** | 0.885 | 24.5 min |
+| **T02** | **temperature=0.2** | **0.946** | 0.876 | 0.869 | **0.897** | 24.3 min |
+| T03 | temperature=0.3 | 0.918 | 0.785 | 0.875 | 0.859 | 26.8 min |
+| Thinking | reasoning enabled | 0.927 | 0.844 | 0.836 | 0.869 | 26.4 min |
 
-## 性能对比
+结论：生产生成采用 MiMo v2.5 Pro 非思考模式，`temperature=0.2`。
 
-| 指标 | 旧 chunker | 新 chunker | 变化 |
-|------|-----------|-----------|:----:|
-| Chunk 总数 | 1274 | 1714 | +34.5% |
-| 平均大小 | 432 chars | 285 chars | -34% |
-| 空 heading | 全空（`[""]` bug） | 0/1714 | ✓ |
-| 端到端延迟 | 2604ms | 2419ms | -7% |
-| Reranker | 2558ms | 2384ms | -7% |
+## D4P 与 MiMo 严格单变量对照
 
-## 历史数据（存档）
+两组共享：
 
-| 配置 | Faith. | AnsRel. | CtxPrec. | 说明 |
-|---|---|---|---|---|
-| F0 关闭过滤 | 0.874 | 0.818 | 0.816 | 旧 chunker |
-| F1 0.70 | 0.901 | 0.791 | 0.834 | 旧 chunker |
-| F2 0.75 | 0.918 | 0.826 | 0.844 | 旧 chunker，上一基线 |
-| F3 0.80 | 0.937 | 0.780 | 0.799 | 旧 chunker |
+- 同一份 `contexts_r075.json`
+- 同一套 Prompt
+- 同一温度 `0.2`
+- 同一个 MiMo Judge
+- 同一批 30 道题
 
-## 指标目标
+唯一变量是答案生成模型。
 
-| 指标 | 当前 v2 | 旧 F2 | 企业目标 |
-|------|:------:|:------:|:------:|
-| Faithfulness | **0.931** | 0.918 | ≥0.80 |
-| Answer Relevancy | **0.857** | 0.826 | ≥0.70 |
-| Context Precision | **0.857** | 0.844 | ≥0.80 |
+| 生成模型 | Faith. | AnsRel. | CtxPrec. | 三项均值 | 平均回答长度 |
+|---|---:|---:|---:|---:|---:|
+| DeepSeek V4 Pro | **0.968** | 0.851 | 0.831 | 0.883 | 505 chars |
+| **MiMo v2.5 Pro T02** | 0.946 | **0.876** | **0.869** | **0.897** | 596 chars |
+
+逐题对比（差值小于 0.02 记为持平）：
+
+| 指标 | D4P 胜 | MiMo 胜 | 持平 |
+|---|---:|---:|---:|
+| Faithfulness | 8 | 5 | 17 |
+| Answer Relevancy | 8 | 7 | 15 |
+| Context Precision | 3 | 4 | 23 |
+
+解释：
+
+- D4P 的 Faithfulness 高 0.022，回答更短，适合强调极致防编造的场景。
+- MiMo 的 Answer Relevancy 高 0.025，生产综合均值高 0.014。
+- Context Precision 理论上主要由冻结检索上下文决定。本次同上下文仍出现 0.038 差异，说明单次 LLM Judge 存在波动，不应将其完全归因于生成模型。
+- 仅平均 Faithfulness 与 Answer Relevancy：D4P=0.910，MiMo=0.911，实际近似持平。
+- 当前继续选择 MiMo T02，原因是综合质量、现有部署和额度成本更合适；D4P 保留为高 Faithfulness 对照。
+
+## 历史基线
+
+| 版本 | 生成模型 | Faith. | AnsRel. | CtxPrec. | 说明 |
+|---|---|---:|---:|---:|---|
+| F2 | D4P | 0.918 | 0.826 | 0.844 | 旧 chunker，阈值 0.75 |
+| v2 | D4P | 0.931 | 0.857 | 0.857 | IBM 标题 fallback |
+| **MiMo T02** | **MiMo** | **0.946** | **0.876** | **0.869** | **当前生产推荐** |
+| D4P Frozen | D4P | **0.968** | 0.851 | 0.831 | 同上下文生成模型对照 |
+
+旧 L4-L6 使用了被截断为前端 200 字摘要的上下文，属于评测污染，只保留为故障历史，不能用于模型质量结论。
+
+## 评测限制
+
+- Answer Relevancy 请求 3 个 generations，但 MiMo 兼容接口只返回 1 个，因此存在额外波动。
+- LLM Judge 并非确定性测量，0.01～0.04 的小差异需要重复评测后才能作强结论。
+- 当前 30 题适合项目迭代和面试展示，不等同于大规模统计显著性实验。
 
 ## 产物
 
-- 新数据集：`data/evaluations/datasets/eval_dataset_r075.json`
-- 新报告：`data/evaluations/reports/ragas_r075_v2.json`
-- 旧数据集/报告：`data/evaluations/archive/`
-- 性能测试：`backend/perf_test.py`
-
-## 结论
-
-默认保留配置不变：
 ```text
+data/evaluations/datasets/contexts_r075.json
+data/evaluations/datasets/eval_dataset_r075_t00.json
+data/evaluations/datasets/eval_dataset_r075_t02.json
+data/evaluations/datasets/eval_dataset_r075_t03.json
+data/evaluations/datasets/eval_dataset_r075_think.json
+data/evaluations/datasets/eval_dataset_r075_d4p_t02.json
+
+data/evaluations/reports/ragas_t00.json
+data/evaluations/reports/ragas_t02.json
+data/evaluations/reports/ragas_t03.json
+data/evaluations/reports/ragas_think.json
+data/evaluations/reports/ragas_d4p_frozen_t02.json
+```
+
+## 最终决策
+
+```text
+generation_model = MiMo v2.5 Pro
+thinking = disabled
+temperature = 0.2
 min_score = 0.50
 max_chunks_per_document = 4
 adaptive_cutoff_ratio = 0.75
 keep_min = 3
 ```
-
-IBM 标题 fallback 已验证有效，chunk 语义边界改善带来三项指标全面提升。

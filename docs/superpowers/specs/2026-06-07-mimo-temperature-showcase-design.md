@@ -13,13 +13,17 @@ gold accents, sharp borders, and oversized numeric typography.
 
 ## Content
 
-- Compare T00, T02, T03, and Thinking.
+- Compare T00, T02, T03, and Thinking, plus the later D4P Frozen strict
+  generation-model control.
 - Show Faithfulness, Answer Relevancy, Context Precision, and the three-metric
   mean for every group.
-- Highlight T02 as the recommended production setting.
+- Highlight T02 as the recommended production setting while showing D4P Frozen
+  as the highest-Faithfulness control.
 - State that T00 leads Answer Relevancy and Context Precision, while T02 wins
   Faithfulness and the overall mean.
 - State that Thinking is slower and does not outperform T02.
+- State that D4P is more faithful, MiMo is more relevant, and the two are
+  approximately tied when comparing the answer-dependent metrics.
 - Keep all values visible in an accessible HTML table in addition to the visual
   bars.
 

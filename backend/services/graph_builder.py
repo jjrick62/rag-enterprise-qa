@@ -10,7 +10,6 @@ import os
 import asyncio
 from typing import List, Dict, Set, Tuple
 from dataclasses import dataclass, field
-from openai import AsyncOpenAI
 
 
 @dataclass
@@ -106,8 +105,10 @@ EXTRACTION_PROMPT = """你是知识图谱构建助手。从以下文档内容中
 class GraphBuilder:
     """知识图谱构建器——调用 LLM 抽取实体和关系"""
 
-    def __init__(self, api_key: str, base_url: str = "https://api.deepseek.com"):
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+    def __init__(self, provider):
+        self._client = provider.create_async_client()
+        self._model = provider.model
+        self._extra_body = provider.extra_body
         self._kg = KnowledgeGraph()
 
     @property
@@ -120,10 +121,11 @@ class GraphBuilder:
 
         try:
             resp = await self._client.chat.completions.create(
-                model="deepseek-chat",
+                model=self._model,
                 temperature=0.1,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=800,
+                extra_body=self._extra_body or None,
             )
             raw = resp.choices[0].message.content
             # 清理 markdown 代码块包裹

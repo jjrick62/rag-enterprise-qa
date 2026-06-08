@@ -94,7 +94,7 @@ def test_ragas_dataset_preparation_preserves_full_answers_and_contexts():
 def test_evaluation_scripts_consume_internal_full_context_events():
     backend_dir = Path(__file__).resolve().parents[1]
 
-    for script_name in ("gen_answers.py", "run_ragas_eval.py"):
+    for script_name in ("gen_answers.py",):
         source = (backend_dir / script_name).read_text(encoding="utf-8")
         assert '.type == "contexts"' in source
         assert "s.excerpt" not in source
