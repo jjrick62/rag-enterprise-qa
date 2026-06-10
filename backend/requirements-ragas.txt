@@ -1,0 +1,21 @@
+# RAGAS 评估专用环境（独立于主 venv）
+# 版本锁定以保证评测可复现
+
+ragas>=0.3.0,<0.5.0
+datasets>=2.0.0
+pandas>=2.0.0
+
+# RAGAS 依赖特定的 langchain 版本
+langchain>=0.2.0,<0.3.0
+langchain-core>=0.2.0,<0.3.0
+langchain-community>=0.2.0,<0.3.0
+langchain-openai>=0.1.0,<0.2.0
+openai>=1.50.0,<2.0.0
+
+# Embedding（与主环境共用模型文件）
+sentence-transformers>=3.0.0,<4.0.0
+huggingface_hub>=0.20.0
+modelscope>=1.20.0
+
+# Shared
+numpy>=1.26.0

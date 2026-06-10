@@ -40,7 +40,7 @@
 > | 0.75 | 0.918 | 0.826 | 0.844 | 4.10 |
 > | 0.80 | 0.937 | 0.780 | 0.799 | 3.83 |
 
-[完整报告](ragabilitytest.md) · [迭代记录](14.06claude写这里/迭代记录_全量RAGAS分数.md)
+[完整报告](ragabilitytest.md)
 
 ## 系统链路
 
@@ -106,40 +106,79 @@ rag-enterprise-qa/
 │   │   ├── markdown.js              # marked.js 渲染（表格/代码/列表）
 │   │   └── utils.js                 # 工具函数
 │   └── test.html                    # 旧演示页（保留）
-├── 14.06claude写这里/             # 当前交接入口和历史审计
+
 ├── README.md
-├── CHATGPT_README.md
 └── ragabilitytest.md
 ```
 
 ## 快速开始
 
+### 一键部署（推荐）
+
+```powershell
+# 克隆仓库
+git clone https://github.com/jjrick62/rag-enterprise-qa.git
+cd rag-enterprise-qa
+
+# 一键部署：创建 venv → 安装依赖 → 下载模型 → 启动服务
+.\setup.ps1
+```
+
+首次运行需要下载两个模型（~2.4GB），后续启动可跳过：
+
+```powershell
+.\setup.ps1 -SkipModels -SkipIngest
+```
+
+### 手动部署
+
 ```powershell
 cd backend
+
+# 1. 创建虚拟环境
 python -m venv venv
 .\venv\Scripts\Activate.ps1
+
+# 2. 安装依赖
 pip install -r requirements.txt
+
+# 3. 配置环境变量
 Copy-Item .env.example .env
+# 编辑 .env 填入 MIMO_API_KEY
+
+# 4. 下载模型（从 ModelScope，国内可用）
+python download_models.py
+
+# 5. 启动服务
+.\venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8080
 ```
 
-在 `backend/.env` 配置：
+### 摄入文档
 
-```dotenv
-MIMO_API_KEY=...
-MIMO_BASE_URL=https://api.xiaomimimo.com/v1
-MIMO_MODEL=mimo-v2.5-pro
-```
+服务启动后，打开 `http://localhost:8080` → 切换到「文档管理」标签 → 点击「全量重摄入」。
 
-启动服务：
+或通过 API：
 
 ```powershell
-.\venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000
+curl -X POST http://localhost:8080/api/documents/reingest-all
 ```
 
-浏览器打开 `http://localhost:8000`（FastAPI 直接 serve 前端），或调用：
+### 配置说明
+
+`.env` 关键配置项：
+
+| 变量 | 说明 | 示例 |
+|------|------|------|
+| `MIMO_API_KEY` | MiMo API Key（订阅版 `tp-` 开头） | `tp-xxx...` |
+| `MIMO_BASE_URL` | 订阅版：`https://token-plan-cn.xiaomimimo.com/v1`；普通版：`https://api.xiaomimimo.com/v1` | |
+| `MIMO_MODEL` | 模型名 | `mimo-v2.5-pro` |
+| `EMBEDDING_MODEL` | Embedding 模型 | `BAAI/bge-small-zh-v1.5` |
+| `CHROMA_PATH` | ChromaDB 持久化目录 | `../data/chroma_db` |
+
+服务启动后浏览器打开 `http://localhost:8080`（FastAPI 直接 serve 前端），或调用：
 
 ```powershell
-curl.exe -N -X POST http://localhost:8000/api/chat/send `
+curl.exe -N -X POST http://localhost:8080/api/chat/send `
   -H "Content-Type: application/json" `
   -d '{"question":"What tuning parameters are available for IBM foundation models?"}'
 ```
@@ -155,20 +194,24 @@ cd backend
 
 ## 评估
 
-生成四组隔离数据：
+RAGAS 评估需要独立虚拟环境：
 
 ```powershell
 cd backend
+
+# 创建 RAGAS 独立环境
+python -m venv venv_ragas
+.\venv_ragas\Scripts\Activate.ps1
+pip install -r requirements-ragas.txt
+
+# 生成答案
 .\venv\Scripts\python.exe gen_answers.py
-```
 
-评估默认 `0.75` 数据集：
-
-```powershell
+# 运行 RAGAS
 .\venv_ragas\Scripts\python.exe eval_ragas_only.py
 ```
 
-评估指定数据集并保存报告：
+评估指定数据集：
 
 ```powershell
 .\venv_ragas\Scripts\python.exe eval_ragas_only.py `
@@ -176,7 +219,14 @@ cd backend
   --output ..\data\evaluations\reports\ragas_r075.json
 ```
 
-评测链路不会再截断答案或 chunk。前端仍只接收 200 字引用摘要。
+## 统计分析
+
+```powershell
+cd backend
+.\venv\Scripts\python.exe stats_analysis.py
+```
+
+输出全部 10 组实验的描述统计、Cohen's d 效应量、Judge 噪声量化和异常题诊断。
 
 ## 当前决策
 
@@ -197,8 +247,6 @@ cd backend
 
 - [API 文档](docs/API文档.md)
 - [开发日程](docs/RAG优化开发日程.md)
-- [当前交接](14.06claude写这里/README.md)
-- [ChatGPT/Codex 工作记录](CHATGPT_README.md)
 
 ## License
 

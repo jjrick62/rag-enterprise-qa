@@ -32,3 +32,6 @@ backend/models/
 
 # Local visual brainstorming sessions
 .superpowers/
+
+# Internal dev logs — not for public repo
+14.06claude写这里/
